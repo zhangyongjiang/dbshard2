@@ -32,7 +32,8 @@ public interface ExtendedDao extends BaseDao {
 
 	List<Class> listManagedClasses();
 	void createBean(ObjectData obj);
-	void updateBean(ObjectData obj);
+    void updateBean(ObjectData obj);
+    void updateBeanAndIndexAndMapping(ObjectData obj);
 	int delete(Class cls, String id);
 	int deleteAll(Class cls, Collection<String> ids);
 	int deleteBean(ObjectData od);

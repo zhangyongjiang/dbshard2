@@ -57,7 +57,6 @@ import com.gaoshin.dbshard2.TimeRange;
 import com.gaoshin.dbshard2.entity.IndexedData;
 import com.gaoshin.dbshard2.entity.MappedData;
 import com.gaoshin.dbshard2.entity.ObjectData;
-
 import common.util.DateUtil;
 import common.util.reflection.ReflectionUtil;
 
@@ -142,39 +141,61 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		forEachBean(cls, new BeanHandler() {
 			@Override
 			public void processBean(Object bean) {
-				updateBean((ObjectData) bean);
+				updateBeanAndIndexAndMapping((ObjectData) bean);
 			}
 		});
 	}
 
-	@Override
-	public void updateBean(ObjectData obj) {
-		ObjectData od = new ObjectData();
-		od.id = obj.id;
-		od.created = obj.created;
-		od.version = obj.version;
-		String id = obj.id;
-		
-		obj.json = null;
-		if(obj.created == 0)
-			obj.created = obj.updated = common.util.DateUtil.currentTimeMillis();
-		else
-			obj.updated = common.util.DateUtil.currentTimeMillis();
-		
-		ObjectData indb = getBean(obj.getClass(), id);
-		removeIndexesForBean(indb);
-		removeMappingsForBean(indb);
-		
-		try {
-			String json = objectMapper.writeValueAsString(obj);
-			od.json = json ;
-		} catch (JsonProcessingException e) {
-			throw new RuntimeException("json error", e);
-		}
-		super.update(obj.getClass(), od);
-		addIndexesForBean(obj);
-		addMappingsForBean(obj);
-	}
+    @Override
+    public void updateBean(ObjectData obj) {
+        ObjectData od = new ObjectData();
+        od.id = obj.id;
+        od.created = obj.created;
+        od.version = obj.version;
+        
+        obj.json = null;
+        if(obj.created == 0)
+            obj.created = obj.updated = common.util.DateUtil.currentTimeMillis();
+        else
+            obj.updated = common.util.DateUtil.currentTimeMillis();
+        
+        try {
+            String json = objectMapper.writeValueAsString(obj);
+            od.json = json ;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("json error", e);
+        }
+        super.update(obj.getClass(), od);
+    }
+
+    @Override
+    public void updateBeanAndIndexAndMapping(ObjectData obj) {
+        ObjectData od = new ObjectData();
+        od.id = obj.id;
+        od.created = obj.created;
+        od.version = obj.version;
+        String id = obj.id;
+        
+        obj.json = null;
+        if(obj.created == 0)
+            obj.created = obj.updated = common.util.DateUtil.currentTimeMillis();
+        else
+            obj.updated = common.util.DateUtil.currentTimeMillis();
+        
+        ObjectData indb = getBean(obj.getClass(), id);
+        removeIndexesForBean(indb);
+        removeMappingsForBean(indb);
+        
+        try {
+            String json = objectMapper.writeValueAsString(obj);
+            od.json = json ;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("json error", e);
+        }
+        super.update(obj.getClass(), od);
+        addIndexesForBean(obj);
+        addMappingsForBean(obj);
+    }
 	
 	protected int addIndexesForBean(ObjectData obj){
 		int ret = 0;
