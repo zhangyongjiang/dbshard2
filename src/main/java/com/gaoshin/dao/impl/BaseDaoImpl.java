@@ -38,9 +38,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
-import com.gaoshin.cache.CacheProxy;
-import com.gaoshin.cache.DummyCacheProxy;
-import com.gaoshin.cache.NullCache;
 import com.gaoshin.dao.BaseDao;
 import com.gaoshin.dao.ClassIndex;
 import com.gaoshin.dao.ExtendedDataSource;
@@ -63,7 +60,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	protected ShardResolver shardResolver;
 	protected ShardedDataSource shardedDataSource;
 	protected ExecutorService executorService;
-	protected CacheProxy cacheProxy;
 	protected TableManager tableManager;
 	
 	protected ThreadLocal<RequestContext> threadContext = new ThreadLocal<RequestContext>();
@@ -85,12 +81,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	}
 	public void setExecutorService(ExecutorService executorService) {
 		this.executorService = executorService;
-	}
-	public CacheProxy getCacheProxy() {
-		return cacheProxy==null ? DummyCacheProxy.getInstance() : cacheProxy;
-	}
-	public void setCacheProxy(CacheProxy cacheService) {
-		this.cacheProxy = cacheService;
 	}
 	public TableManager getTableManager() {
 		return tableManager;
@@ -126,7 +116,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		JdbcTemplate jt = getJdbcTemplate(dataSource);
 		int res = jt.update(sql, obj.id, obj.created, obj.updated, obj.version, obj.json);
 		ups.getAndAdd(res);
-		getCacheProxy().set(obj.id, obj);
 		return ups.get();
 	}
 	
@@ -167,7 +156,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		int res = jt.update(sql, obj.created, obj.updated, obj.version, obj.json, obj.id);
 		logger.debug("update " + obj.id + " with json " + obj.json);
 		ups.getAndAdd(res);
-		getCacheProxy().set(obj.id, obj);
 		return ups.get();
 	}
 
@@ -175,8 +163,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	public ObjectData objectLookup(Class cls, String id) {
 		ObjectData data = null;
 		if(id != null){
-			Object cached = getCacheProxy().get(id);
-			if(cached == null){
 				ObjectId oi = new ObjectId(id);
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), oi.getShard());
 				String sql = "select * from " + cls.getSimpleName() + " where id=?";
@@ -184,10 +170,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 				List<ObjectData> od = jt.query(sql, new Object[]{id}, new ObjectDataRowMapper());
 				
 				data = od.size() > 0 ? od.get(0) : null;
-				getCacheProxy().set(id, data != null ? data : NullCache.getInstance());
-			}else if(cached != null && !(cached instanceof NullCache)){
-				data = (ObjectData) cached;
-			}
 		}
 		return data;
 	}
@@ -239,15 +221,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 			return result;
 		}
 		List<String> spilledIdList = new ArrayList<>(ids);
-		for(Entry<String, Object> entry : getCacheProxy().getBulk(spilledIdList).entrySet()) {
-			Object value = entry.getValue();
-			if(value != null && !(value instanceof NullCache)) {
-				ObjectData od = (ObjectData) value;
-				map.put(od.id, od);
-			}
-			spilledIdList.remove(entry.getKey());
-		}
-		
 		if(spilledIdList.size() > 0){
 			ObjectId oi = new ObjectId(spilledIdList.get(0));
 			final String sql = "select * from " + cls.getSimpleName() + " where id in (:ids)";
@@ -273,10 +246,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 				map.put(objectData.id, objectData);
 			}
 
-			for(String id : spilledIdList){
-				spilledMap.put(id, new NullCache());
-			}
-			getCacheProxy().setBulk(spilledMap);
 		}
 		
 		for(String id : ids) {
@@ -294,7 +263,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		String sql = "delete from " + cls.getSimpleName() + " where id=?";
 		JdbcTemplate jt = getJdbcTemplate(dataSource);
 		int res = jt.update(sql, id);
-		getCacheProxy().set(id, NullCache.getInstance());
 		return res;
 	}
 
@@ -318,11 +286,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 				}
 			});
 			
-			HashMap<String,Object> cache = new HashMap<>();
-			for(String id: ids){
-				cache.put(id, NullCache.getInstance());
-			}
-			getCacheProxy().setBulk(cache);
 		}
 		return ups.intValue();
 	}
@@ -355,7 +318,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), objectId.getShard());
 		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
 		int res = namedjc.update(sql.toString(), values);
-		getCacheProxy().delete(getTableManager().getIndexedLookupKey(index, values));
 		return res;
 	}
 
@@ -475,10 +437,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	
 	protected List<IndexedData> indexedLookup(Integer dataSourceId, final ClassIndex index, final Map<String, Object> values) {
 		String key = getTableManager().getIndexedLookupKey(index, values);
-		Object cached = getCacheProxy().get(key);
-		if(cached != null) {
-			return (List<IndexedData>) cached;
-		}
 		Map<String, Object> params = new HashMap<String, Object>();
 		String table = index.getTableName();
 		final StringBuilder sql = new StringBuilder("select * from ").append(table);
@@ -512,7 +470,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 			result = indexLookup(dataSourceId, sql.toString(), params);
 		else 
 			result = indexLookup(sql.toString(), params);
-		getCacheProxy().set(key, result);
 		return result;
 	}
 
