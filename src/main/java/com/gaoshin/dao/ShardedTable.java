@@ -26,7 +26,6 @@ import java.lang.annotation.Target;
 @Target(TYPE)
 @Retention(RUNTIME)
 public @interface ShardedTable {
-	String type();
 	Index[] indexes() default {};
 	Mapping[] mappings() default {};
 }

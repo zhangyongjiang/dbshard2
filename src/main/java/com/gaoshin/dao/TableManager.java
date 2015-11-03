@@ -28,8 +28,6 @@ import org.apache.log4j.Logger;
 public class TableManager {
 	private static final Logger logger = Logger.getLogger(TableManager.class);
 	private List<Class> classesManaged = new ArrayList<>();
-	private HashMap<String, Class> name2cls = new HashMap<String, Class>();
-	private HashMap<Class, String> cls2name = new HashMap<Class, String>();
 	private HashMap<Class,ShardedTable> shardedTables = new HashMap<>();
 	private HashMap<Class,List<ClassIndex>> indexes = new HashMap<>();
 
@@ -45,10 +43,6 @@ public class TableManager {
 		for(Class cls : classesManaged){
 			ShardedTable shardedTable = (ShardedTable) cls.getAnnotation(ShardedTable.class);
 			if(shardedTable != null){
-				//add to objectTypeMapper 
-				name2cls.put(shardedTable.type(), cls);
-				cls2name.put(cls, shardedTable.type());
-				
 				//add to rest
 				shardedTables.put(cls,shardedTable);
 				List<ClassIndex> inds = new ArrayList<>();
@@ -64,12 +58,6 @@ public class TableManager {
 	}
 	public List<Class> getClassesManaged(){
 		return classesManaged;
-	}
-	public Class<?> getCls(String type) {
-		return name2cls.get(type);
-	}
-	public String getName(Class cls) {
-		return cls2name.get(cls);
 	}
 	public ShardedTable getShardedTable(Class cls){
 		return shardedTables.get(cls);

@@ -81,8 +81,6 @@ public interface ExtendedDao extends BaseDao {
 	
 	String generateIdForBean(ObjectData bean);
 	String generateSameShardId(String id, Class forClass);
-	String sameIdExceptType(String id, Class forClass);
-	List<String> sameIdsExceptType(List<String> ids, Class forClass);
 	
 	List<MappedData> mappedLookup(Class pclass, Class sclass, String pid);
 	List<String> mappedIdLookup(Class pclass, Class sclass, String pid);

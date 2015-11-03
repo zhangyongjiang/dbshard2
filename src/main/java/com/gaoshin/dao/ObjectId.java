@@ -21,7 +21,6 @@ import common.util.UuidUtil;
 
 
 public class ObjectId {
-	private String type;
 	private int shard;
 	private String uuid;
 	
@@ -37,19 +36,16 @@ public class ObjectId {
 	public ObjectId(Class cls, int shardId) {
 		this.shard = shardId;
 		uuid = UuidUtil.randomType1Uuid();
-		setType(cls);
 	}
 	
 	public ObjectId(Class cls, int shardId, String uuid) {
 		this.shard = shardId;
 		this.uuid = uuid;
-		setType(cls);
 	}
 	
 	public ObjectId(String strid) {
 		try {
 			setShard(Short.parseShort(strid.substring(3,6), 16));
-			setType(strid.substring(0, 3));
 			setUuid(strid.substring(6));
 		} catch (Exception e) {
 			throw new InvalidIdException(strid);
@@ -58,25 +54,9 @@ public class ObjectId {
 	
 	@Override
 	public String toString() {
-		return String.format("%s%03x%s", type.toString(), shard, uuid);
+		return String.format("%03x%s", shard, uuid);
 	}
 	
-	public String getTypeAndShard() {
-		return String.format("%s%03x", type.toString(), shard);
-	}
-	
-	public String getType() {
-		return type;
-	}
-
-	public void setType(String type) {
-		this.type = type;
-	}
-	
-	public void setType(Class cls) {
-		this.type = ((ShardedTable)cls.getAnnotation(ShardedTable.class)).type();
-	}
-
 	public int getShard() {
 		return shard;
 	}

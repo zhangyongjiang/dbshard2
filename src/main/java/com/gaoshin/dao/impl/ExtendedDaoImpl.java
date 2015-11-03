@@ -96,28 +96,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	public String generateSameShardId(String id, Class forClass) {
 		ObjectId oi = new ObjectId(id);
 		oi.setUuid(UUID.randomUUID().toString());
-		oi.setType(forClass);
 		return oi.toString();
 	}
 	
-	@Override
-	public String sameIdExceptType(String id, Class forClass) {
-		ObjectId oi = new ObjectId(id);
-		oi.setType(forClass);
-		return oi.toString();
-	}
-
-	@Override
-	public List<String> sameIdsExceptType(List<String> ids, Class forClass) {
-		List<String> result = new ArrayList<String>();
-		for(String id : ids) {
-			ObjectId oi = new ObjectId(id);
-			oi.setType(forClass);
-			result.add(oi.toString());
-		}
-		return result;
-	}
-
 	@Override
 	public void createBean(ObjectData obj) {
 		if(obj.getClass().equals(ObjectData.class))
