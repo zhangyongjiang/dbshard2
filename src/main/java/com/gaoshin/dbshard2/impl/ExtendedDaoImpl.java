@@ -610,6 +610,13 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		}
 		return sqls;
 	}
+	
+	@Override
+	public void createTables() {
+	    for(String sql : getCreateTableSqls()) {
+	        updateAll(sql);
+	    }
+	}
 
 	@Override
 	public List<MappedData> mappedLookup(Class pclass, Class sclass, String pid) {
