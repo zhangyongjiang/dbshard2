@@ -93,7 +93,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}	
 	
 	@Override
-	public String generateSameShardId(String id, Class forClass) {
+	public String generateSameShardId(String id) {
 		ObjectId oi = new ObjectId(id);
 		oi.setUuid(UUID.randomUUID().toString());
 		return oi.toString();

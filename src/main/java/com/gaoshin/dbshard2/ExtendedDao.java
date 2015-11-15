@@ -82,7 +82,7 @@ public interface ExtendedDao extends BaseDao {
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, String sql, Map<String, Object> keyValues);
 	
 	String generateIdForBean(ObjectData bean);
-	String generateSameShardId(String id, Class forClass);
+	String generateSameShardId(String id);
 	
 	List<MappedData> mappedLookup(Class pclass, Class sclass, String pid);
 	List<String> mappedIdLookup(Class pclass, Class sclass, String pid);
