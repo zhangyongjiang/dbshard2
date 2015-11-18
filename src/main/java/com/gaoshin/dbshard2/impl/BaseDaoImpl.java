@@ -49,7 +49,6 @@ import com.gaoshin.dbshard2.ShardedDataSource;
 import com.gaoshin.dbshard2.TableManager;
 import com.gaoshin.dbshard2.entity.IndexedData;
 import com.gaoshin.dbshard2.entity.ObjectData;
-
 import common.util.JacksonUtil;
 import common.util.MultiTask;
 import common.util.reflection.ReflectionUtil;
@@ -485,6 +484,7 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 
 	@Override
 	public int updateAll(final String sql, final Object... objects) {
+	    System.out.println("Update all: " + sql);
 		final AtomicInteger ups = new AtomicInteger();
 		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
 			@Override

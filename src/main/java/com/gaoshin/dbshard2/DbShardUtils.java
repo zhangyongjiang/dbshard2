@@ -51,7 +51,7 @@ public class DbShardUtils {
 				}
 			});
 		} catch (Throwable e) {
-			e.printStackTrace();
+//		    e.printStackTrace();
 			System.err.println("============ " + e.getMessage());
 		}
 		sbb.append(")");
@@ -151,7 +151,7 @@ public class DbShardUtils {
 							return "varchar(" + length + ")";
 					}
 				} catch (Throwable e) {
-					throw new RuntimeException(e);
+//					throw new RuntimeException(e);
 				}
 				return "varchar(64)";
 	        }

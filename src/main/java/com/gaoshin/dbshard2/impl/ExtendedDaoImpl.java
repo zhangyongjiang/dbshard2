@@ -603,9 +603,12 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	public List<String> getCreateTableSqls() {
 		List<String> sqls = new ArrayList<String>();
 		for(Class cls : forClasses) {
+		    System.out.println("get sql for class " + cls);
 			for(String sql : DbShardUtils.getSqls(cls)) {
-				if(!sqls.contains(sql))
+				if(!sqls.contains(sql)) {
+		            System.out.println(sql);
 					sqls.add(sql);
+				}
 			}
 		}
 		return sqls;
