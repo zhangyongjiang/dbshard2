@@ -614,7 +614,11 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	@Override
 	public void createTables() {
 	    for(String sql : getCreateTableSqls()) {
-	        updateAll(sql);
+	        try {
+                updateAll(sql);
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
 	    }
 	}
 
