@@ -102,32 +102,44 @@ public class ShardedDataSourceImpl implements ShardedDataSource {
 	}
 
 	@Override
-	public synchronized ExtendedDataSource getDataSourceByDataSourceId(RequestContext tc, int dataSourceId) {
-		ExtendedDataSource ds = dataSources.get(dataSourceId);
-		if(ds == null) {
-			ds = new ExtendedDataSource();
-			ds.setDriverClassName(dbClassName);
-			ds.setUsername(userName);
-			ds.setPassword(password);
-			String dburl = (url != null? url.replaceAll("__DATASOURCEID__", String.valueOf(dataSourceId)):url);
-			if(dbBaseName != null)
-				dburl = dburl.replaceAll("DBBASENAME", dbBaseName);
-			ds.setUrl(dburl);
-			logger.debug("create data source for " + dburl);
-			
-			ds.setLogAbandoned(true);
-			ds.setRemoveAbandonedTimeout(300);
-			ds.setMinEvictableIdleTimeMillis(300000);
-			ds.setTimeBetweenEvictionRunsMillis(30000);
-	        ds.setMaxTotal(getMaxTotal());
-	        ds.setMaxIdle(getMaxIdle());
-	        ds.setMaxWaitMillis(2000);
-	        ds.setMaxOpenPreparedStatements(500);
-	        ds.setPoolPreparedStatements(false);
-			ds.setAutoCommit(isAutoCommit());
-			ds.setDataSourceId(dataSourceId);
-			dataSources.put(dataSourceId, ds);
-		}
+	public ExtendedDataSource getDataSourceByDataSourceId(RequestContext tc, int dataSourceId) {
+        ExtendedDataSource ds = null;
+        boolean newDataSource = false;
+        
+	    synchronized (dataSources) {
+	        ds = dataSources.get(dataSourceId);
+	        if(ds == null) {
+	            ds = new ExtendedDataSource();
+	            dataSources.put(dataSourceId, ds);
+	            newDataSource = true;
+	        }
+        }
+	    
+	    synchronized (ds) {
+            if(newDataSource) {
+                ds.setDriverClassName(dbClassName);
+                ds.setUsername(userName);
+                ds.setPassword(password);
+                String dburl = (url != null? url.replaceAll("__DATASOURCEID__", String.valueOf(dataSourceId)):url);
+                if(dbBaseName != null)
+                    dburl = dburl.replaceAll("DBBASENAME", dbBaseName);
+                ds.setUrl(dburl);
+                logger.debug("create data source for " + dburl);
+                
+                ds.setLogAbandoned(true);
+                ds.setRemoveAbandonedTimeout(300);
+                ds.setMinEvictableIdleTimeMillis(300000);
+                ds.setTimeBetweenEvictionRunsMillis(30000);
+                ds.setMaxTotal(getMaxTotal());
+                ds.setMaxIdle(getMaxIdle());
+                ds.setMaxWaitMillis(2000);
+                ds.setMaxOpenPreparedStatements(500);
+                ds.setPoolPreparedStatements(false);
+                ds.setAutoCommit(isAutoCommit());
+                ds.setDataSourceId(dataSourceId);
+            }
+        }
+	    
 		ds.setThreadContext(tc);
 		return ds;
 	}
