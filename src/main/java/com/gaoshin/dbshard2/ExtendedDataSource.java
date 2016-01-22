@@ -130,7 +130,4 @@ public class ExtendedDataSource extends BasicDataSource {
         return threadContext;
     }
 
-    public void setThreadContext(ThreadLocal<RequestContext> threadContext) {
-        this.threadContext = threadContext;
-    }
 }
