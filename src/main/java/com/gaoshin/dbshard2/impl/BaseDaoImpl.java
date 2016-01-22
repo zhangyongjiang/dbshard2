@@ -111,10 +111,10 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		final ObjectId oi = new ObjectId(obj.id);
 		final AtomicInteger ups = new AtomicInteger();
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), oi.getShard());
-		String sql = "insert into " + cls.getSimpleName() + " (id, created, updated, version, json) values (?, ?, ?, ?, ?)";
+		String sql = "insert into " + cls.getSimpleName() + " (id, created, updated, json) values (?, ?, ?, ?)";
 		logger.debug(sql + "\n" + obj.json);
 		JdbcTemplate jt = getJdbcTemplate(dataSource);
-		int res = jt.update(sql, obj.id, obj.created, obj.updated, obj.version, obj.json);
+		int res = jt.update(sql, obj.id, obj.created, obj.updated, obj.json);
 		ups.getAndAdd(res);
 		return ups.get();
 	}
@@ -151,9 +151,9 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		obj.updated = common.util.DateUtil.currentTimeMillis();
 		final AtomicInteger ups = new AtomicInteger();
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), oi.getShard());
-		String sql = "update " + cls.getSimpleName() + " set created=?, updated=?, version=?, json=? where id=?";
+		String sql = "update " + cls.getSimpleName() + " set created=?, updated=?, json=? where id=?";
 		JdbcTemplate jt = getJdbcTemplate(dataSource);
-		int res = jt.update(sql, obj.created, obj.updated, obj.version, obj.json, obj.id);
+		int res = jt.update(sql, obj.created, obj.updated, obj.json, obj.id);
 		logger.debug("update " + obj.id + " with json " + obj.json);
 		ups.getAndAdd(res);
 		return ups.get();
@@ -573,7 +573,6 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 				row.id = arg0.getString("id");
 				row.created = arg0.getLong("created");
 				row.updated = arg0.getLong("updated");
-				row.version = arg0.getInt("version");
 				row.json = arg0.getString("json");
 				return row;
 			} catch (Exception e) {

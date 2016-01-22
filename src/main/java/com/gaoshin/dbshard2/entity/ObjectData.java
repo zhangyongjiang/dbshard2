@@ -25,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonRawValue;
 public class ObjectData implements Serializable {
 	public String id;
 	@JsonRawValue public String json;
-	public int version;
 	public long created;
 	public long updated;
 	

@@ -123,7 +123,6 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			obj.id = id;
 		}
 		od.id = id;
-		od.version = obj.version;
 		
 		try {
 			String json = objectMapper.writeValueAsString(obj);
@@ -151,7 +150,6 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
         ObjectData od = new ObjectData();
         od.id = obj.id;
         od.created = obj.created;
-        od.version = obj.version;
         
         obj.json = null;
         if(obj.created == 0)
@@ -173,7 +171,6 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
         ObjectData od = new ObjectData();
         od.id = obj.id;
         od.created = obj.created;
-        od.version = obj.version;
         String id = obj.id;
         
         obj.json = null;
@@ -806,7 +803,6 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 						row.id = arg0.getString("id");
 						row.created = arg0.getLong("created");
 						row.updated = arg0.getLong("updated");
-						row.version = arg0.getInt("version");
 						row.json = arg0.getString("json");
 						handler.processBean(row);
 					}
