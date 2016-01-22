@@ -22,7 +22,6 @@ import java.io.Serializable;
 public class MappedData implements Serializable {
 	private String pid;
 	private String sid;
-	private String json; 
 
 	public String getPid() {
 		return pid;
@@ -38,14 +37,6 @@ public class MappedData implements Serializable {
 
 	public void setSid(String sid) {
 		this.sid = sid;
-	}
-
-	public String getJson() {
-		return json;
-	}
-
-	public void setJson(String json) {
-		this.json = json;
 	}
 
 }
