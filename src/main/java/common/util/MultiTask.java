@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import com.gaoshin.dbshard2.RequestContext;
+
 public class MultiTask {
 	private List<Runnable> tasks;
 	private int finished;
@@ -65,14 +67,17 @@ public class MultiTask {
 	private class TaskRunnable implements Runnable {
 		private Runnable actual;
 		private Exception e;
+		private RequestContext rc;
 
 		public TaskRunnable(Runnable r) {
 			this.actual = r;
+			rc = RequestContext.localRequestContext.get();
 		}
 		
 		@Override
 		public void run() {
 			try {
+			    RequestContext.localRequestContext.set(rc);
 				actual.run();
 			} catch (Exception e) {
 				this.e = e;

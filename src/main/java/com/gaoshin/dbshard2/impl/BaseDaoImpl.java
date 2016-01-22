@@ -36,14 +36,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
 import com.gaoshin.dbshard2.BaseDao;
 import com.gaoshin.dbshard2.ClassIndex;
 import com.gaoshin.dbshard2.ExtendedDataSource;
 import com.gaoshin.dbshard2.ObjectId;
-import com.gaoshin.dbshard2.RequestAware;
-import com.gaoshin.dbshard2.RequestContext;
 import com.gaoshin.dbshard2.ShardResolver;
 import com.gaoshin.dbshard2.ShardedDataSource;
 import com.gaoshin.dbshard2.TableManager;
@@ -54,15 +51,13 @@ import common.util.MultiTask;
 import common.util.reflection.ReflectionUtil;
 
 @SuppressWarnings({"rawtypes","unchecked","static-access"}) 
-public class BaseDaoImpl implements BaseDao, RequestAware {
+public class BaseDaoImpl implements BaseDao {
 	private static Logger logger = Logger.getLogger(BaseDaoImpl.class);
 	
 	protected ShardResolver shardResolver;
 	protected ShardedDataSource shardedDataSource;
 	protected ExecutorService executorService;
 	protected TableManager tableManager;
-	
-	protected ThreadLocal<RequestContext> threadContext = new ThreadLocal<RequestContext>();
 	
 	public ShardResolver getShardResolver() {
 		return shardResolver;
@@ -91,14 +86,14 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	
 	@Override
 	public int getDataSourceIdForObjectId(String id) {
-		return shardedDataSource.getDataSourceByObjectId(threadContext.get(), id).getDataSourceId();
+		return shardedDataSource.getDataSourceByObjectId(id).getDataSourceId();
 	}
 	
     public int getDataSourceIdForObject(ObjectData od) {
         if(od.id != null)
             return getDataSourceIdForObjectId(od.id);
         int shardId = shardResolver.getShardId(od);
-        return shardedDataSource.getDataSourceByShardId(threadContext.get(), shardId).getDataSourceId();
+        return shardedDataSource.getDataSourceByShardId(shardId).getDataSourceId();
     }
 
 	@Override
@@ -110,48 +105,24 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 			throw new RuntimeException("json should not be null");
 		final ObjectId oi = new ObjectId(obj.id);
 		final AtomicInteger ups = new AtomicInteger();
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), oi.getShard());
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
 		String sql = "insert into " + cls.getSimpleName() + " (id, created, json) values (?, ?, ?)";
 		logger.debug(sql + "\n" + obj.json);
-		JdbcTemplate jt = getJdbcTemplate(dataSource);
+		JdbcTemplate jt = dataSource.getJdbcTemplate();
 		int res = jt.update(sql, obj.id, obj.created, obj.json);
 		ups.getAndAdd(res);
 		return ups.get();
 	}
 	
-	protected JdbcTemplate getJdbcTemplate(ExtendedDataSource dataSource) {
-		JdbcTemplate jt = null;
-		try {
-		    if(dataSource.getThreadContext().get() == null)
-		        return new JdbcTemplate(dataSource);
-			jt = new JdbcTemplate(new SingleConnectionDataSource(dataSource.getConnection(), true));
-			return jt;
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	protected NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(ExtendedDataSource dataSource) {
-		NamedParameterJdbcTemplate jt = null;
-		try {
-            if(dataSource.getThreadContext().get() == null)
-                return new NamedParameterJdbcTemplate(dataSource);
-			jt = new NamedParameterJdbcTemplate(new SingleConnectionDataSource(dataSource.getConnection(), true));
-			return jt;
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	@Override
 	public int update(Class cls, final ObjectData obj) {
 		if(obj.json == null)
 			throw new RuntimeException("json should not be null");
 		final ObjectId oi = new ObjectId(obj.id);
 		final AtomicInteger ups = new AtomicInteger();
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), oi.getShard());
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
 		String sql = "update " + cls.getSimpleName() + " set created=?, json=? where id=?";
-		JdbcTemplate jt = getJdbcTemplate(dataSource);
+		JdbcTemplate jt = dataSource.getJdbcTemplate();
 		int res = jt.update(sql, obj.created, obj.json, obj.id);
 		logger.debug("update " + obj.id + " with json " + obj.json);
 		ups.getAndAdd(res);
@@ -163,9 +134,9 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		ObjectData data = null;
 		if(id != null){
 				ObjectId oi = new ObjectId(id);
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), oi.getShard());
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
 				String sql = "select * from " + cls.getSimpleName() + " where id=?";
-				JdbcTemplate jt = getJdbcTemplate(dataSource);
+				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				List<ObjectData> od = jt.query(sql, new Object[]{id}, new ObjectDataRowMapper());
 				
 				data = od.size() > 0 ? od.get(0) : null;
@@ -176,11 +147,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	@Override
 	public List<ObjectData> sqlLookup(final String sql) {
 		final List<ObjectData> result = new ArrayList<>();
-		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSource(new ShardRunnable() {
 					@Override
 					public void run(int dataSourceId) {
-						ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-						NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+						ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+						NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 						List<ObjectData> data = namedjc.query(sql, new ObjectDataRowMapper());
 						synchronized (result) {
 							result.addAll(data);
@@ -192,23 +163,23 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 
 	@Override
 	public List<ObjectData> sqlLookup(final String sql, int dataSourceId) {
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(threadContext.get(), dataSourceId);
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		List<ObjectData> data = namedjc.query(sql, new ObjectDataRowMapper());
 		return data;
 	}
 
 	@Override
 	public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(int dataSourceId) {
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(threadContext.get(), dataSourceId);
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		return namedjc;
 	}
 
 	@Override
 	public JdbcTemplate getJdbcTemplate(int dataSourceId) {
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(threadContext.get(), dataSourceId);
-		JdbcTemplate namedjc = getJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+		JdbcTemplate namedjc = dataSource.getJdbcTemplate();
 		return namedjc;
 	}
 
@@ -226,11 +197,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 			final Map<Integer, List<String>> shardedIds = shardedDataSource.splitByDataSource(spilledIdList);
 			final List<ObjectData> spilledResults = new ArrayList<>();
 			
-			forSelectDataSources(shardedIds.keySet(),new RequestAwareShardRunnable(threadContext.get()) {
+			forSelectDataSources(shardedIds.keySet(),new ShardRunnable() {
 				@Override
 				public void run(int dataSourceId) {
-					ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-					NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+					ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+					NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 					List<ObjectData> data = namedjc.query(sql, Collections.singletonMap("ids", shardedIds.get(dataSourceId)), new ObjectDataRowMapper());
 					synchronized (spilledResults) {
 						spilledResults.addAll(data);
@@ -258,9 +229,9 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	@Override
 	public int delete(Class cls, String id) {
 		ObjectId oi = new ObjectId(id);
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), oi.getShard());
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
 		String sql = "delete from " + cls.getSimpleName() + " where id=?";
-		JdbcTemplate jt = getJdbcTemplate(dataSource);
+		JdbcTemplate jt = dataSource.getJdbcTemplate();
 		int res = jt.update(sql, id);
 		return res;
 	}
@@ -273,11 +244,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 			final String sql = "delete from " + cls.getSimpleName() + " where id in (:ids)";
 			final Map<Integer, List<String>> shardedIds = shardedDataSource.splitByDataSource(ids);
 			
-			forSelectDataSources(shardedIds.keySet(), new RequestAwareShardRunnable(threadContext.get()) {
+			forSelectDataSources(shardedIds.keySet(), new ShardRunnable() {
 				@Override
 				public void run(int shardId) {
-					ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), shardId);
-					NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+					ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(shardId);
+					NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 					int update = namedjc.update(sql, Collections.singletonMap("ids", shardedIds.get(shardId)));
 					synchronized (ups) {
 						ups.getAndAdd(update);
@@ -314,8 +285,8 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		sql.append(valueNames.toString());
 		
 		ObjectId objectId = new ObjectId((String)values.get("id"));
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(threadContext.get(), objectId.getShard());
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(objectId.getShard());
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		int res = namedjc.update(sql.toString(), values);
 		return res;
 	}
@@ -323,11 +294,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	@Override
 	public List<IndexedData> indexLookup(final String sql, final Map<String, Object> values) {
 		final List<IndexedData> result = new ArrayList<>();
-		ShardRunnable runnable = new RequestAwareShardRunnable(threadContext.get()) {
+		ShardRunnable runnable = new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 				List<IndexedData> data = namedjc.query(sql.toString(), values, new IndexedDataRowMapper());
 				synchronized (result) {
 					result.addAll(data);
@@ -340,8 +311,8 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 
 	@Override
 	public List<IndexedData> indexLookup(int dataSourceId, final String sql, final Map<String, Object> values) {
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(threadContext.get(), dataSourceId);
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		List<IndexedData> data = namedjc.query(sql.toString(), values, new IndexedDataRowMapper());
 		return data;
 	}
@@ -349,11 +320,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	@Override
 	public int indexCountLookup(final String sql, final Map<String, Object> values) {
 		final AtomicInteger ai = new AtomicInteger();
-		ShardRunnable runnable = new RequestAwareShardRunnable(threadContext.get()) {
+		ShardRunnable runnable = new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 				int count = namedjc.queryForObject(sql.toString(), values, Integer.class);
 				ai.addAndGet(count);
 			}
@@ -364,8 +335,8 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 
 	@Override
 	public int indexCountLookup(int dataSourceId, final String sql, final Map<String, Object> values) {
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(threadContext.get(), dataSourceId);
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		int count = namedjc.queryForObject(sql.toString(), values, Integer.class);
 		return count;
 	}
@@ -475,8 +446,8 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	@Override
 	public int deleteIndexData(ClassIndex ind, final String id) {
         final String sql = "delete from " + ind.getTableName() + " where id = :id";
-        ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(threadContext.get(), id);
-        NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+        ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(id);
+        NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
         int update = namedjc.update(sql, Collections.singletonMap("id", id));
         return update;
 	}
@@ -485,11 +456,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	public int updateAll(final String sql, final Object... objects) {
 	    System.out.println("Update all: " + sql);
 		final AtomicInteger ups = new AtomicInteger();
-		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSource(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				JdbcTemplate jc = getJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				JdbcTemplate jc = dataSource.getJdbcTemplate();
 				int update = jc.update(sql, objects);
 				logger.debug(dataSourceId + " DBUpdate: " + sql);
 				synchronized (ups) {
@@ -503,11 +474,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	@Override
 	public int updateAll(final String sql, final Map<String, ?> params) {
 		final AtomicInteger ups = new AtomicInteger();
-		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSource(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				NamedParameterJdbcTemplate jc = getNamedParameterJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				NamedParameterJdbcTemplate jc = dataSource.getNamedParameterJdbcTemplate();
 				int update = jc.update(sql, params);
 				synchronized (ups) {
 					ups.getAndAdd(update);
@@ -608,11 +579,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 		}
 		
 		final List<T> results = new ArrayList<T>();
-		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSource(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				NamedParameterJdbcTemplate jc = getNamedParameterJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				NamedParameterJdbcTemplate jc = dataSource.getNamedParameterJdbcTemplate();
 				List<T> dsResults = jc.query(sb.toString(), keyValues, new ObjectDataRowMapper(cls));
 				synchronized (results) {
 					results.addAll(dsResults);
@@ -625,12 +596,12 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	@Override
 	public void dumpTable(final OutputStream output, final String tableName, final String fields) {
 		final String[] names = fields == null ? null : fields.split(",");;
-		forEachDataSourceOneByOne(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSourceOneByOne(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
 				String sql = "select json from " + tableName.replaceAll(" ", "");
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				JdbcTemplate jc = getJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				JdbcTemplate jc = dataSource.getJdbcTemplate();
 				jc.query(sql, new RowCallbackHandler(){
 					@Override
 					public void processRow(ResultSet rs) throws SQLException {
@@ -665,15 +636,10 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	}
 	
 	@Override
-	public void setRequestContext(RequestContext tc) {
-		threadContext.set(tc);
-	}
-	
-	@Override
 	public <T> List<T> indexQuery(int dataSourceId, String sql,
 			Map<String, Object> params, RowMapper<T> rowMapper) {
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(threadContext.get(), dataSourceId);
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		return namedjc.query(sql, params, rowMapper);
 	}
 	
@@ -681,11 +647,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	public <T> List<T> indexQuery(final String sql, final Map<String, Object> params,
 			final RowMapper<T> rowMapper) {
 		final List<T> result = new ArrayList<T>();
-		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSource(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 				List<T> list = namedjc.query(sql, params, rowMapper);
 				synchronized (result) {
 					result.addAll(list);
@@ -698,11 +664,11 @@ public class BaseDaoImpl implements BaseDao, RequestAware {
 	@Override
 	public <T> List<T> indexQuery(final String sql, final RowMapper<T> rowMapper) {
 		final List<T> result = new ArrayList<T>();
-		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSource(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 				List<T> list = namedjc.query(sql, rowMapper);
 				synchronized (result) {
 					result.addAll(list);

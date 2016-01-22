@@ -23,9 +23,9 @@ import java.util.Map;
 
 
 public interface ShardedDataSource {
-	ExtendedDataSource getDataSourceByObjectId(RequestContext tc, String id);
-	ExtendedDataSource getDataSourceByShardId(RequestContext tc, int shardId);
-	ExtendedDataSource getDataSourceByDataSourceId(RequestContext tc, int shardId);
+	ExtendedDataSource getDataSourceByObjectId(String id);
+	ExtendedDataSource getDataSourceByShardId(int shardId);
+	ExtendedDataSource getDataSourceByDataSourceId(int shardId);
 	Map<Integer, List<String>> splitByDataSource(Collection<String> ids);
 	int getShardsPerDataSource();
 }

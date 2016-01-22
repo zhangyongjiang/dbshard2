@@ -24,20 +24,18 @@ import java.util.Map;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.log4j.Logger;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
 public class ExtendedDataSource extends BasicDataSource {
     private static Logger logger = Logger.getLogger(ExtendedDataSource.class);
     
-    private ThreadLocal<RequestContext> threadContext = new ThreadLocal<RequestContext>();
     private Map<RequestContext, Connection> connections = new HashMap<RequestContext, Connection>();
 
     private int dataSourceId;
     private boolean autoCommit;
 
-    public void setThreadContext(RequestContext tc) {
-        threadContext.set(tc);
-    }
-    
     public int getDataSourceId() {
         return dataSourceId;
     }
@@ -48,34 +46,34 @@ public class ExtendedDataSource extends BasicDataSource {
     
     @Override
     public Connection getConnection() throws SQLException {
-        RequestContext context = getThreadContext().get();
-            if(context != null) {
-                synchronized (context) {
-                    Connection conn = null;
-                    synchronized (connections) {
-                        conn = connections.get(context);
-                    }
-                    if(conn == null) {
-                        conn = super.getConnection();
-                        conn.setAutoCommit(isAutoCommit());
-                        synchronized (connections) {
-                            connections.put(getThreadContext().get(), conn);
-                        }
-                        getThreadContext().get().addDataSource(this);
-                        logger.debug(">>>>>>>>>>>dataSourceId " + dataSourceId + " request " + getThreadContext().get() + " connection " + conn.hashCode() + " create.");
-                    }
-                    else {
-                        logger.debug(">>>>>>>>>>>dataSourceId " + dataSourceId + " request " + getThreadContext().get() + " connection " + conn.hashCode() + " reuse.");
-                    }
-                    return conn;
+        RequestContext context = RequestContext.localRequestContext.get();
+        if(context != null) {
+            synchronized (context) {
+                Connection conn = null;
+                synchronized (connections) {
+                    conn = connections.get(context);
                 }
-            }
-            else {
-                logger.debug(">>>>>>>>>>> No RequestContext found. set auto commit to true");
-                Connection conn = super.getConnection();
-                conn.setAutoCommit(true);
+                if(conn == null) {
+                    conn = super.getConnection();
+                    conn.setAutoCommit(isAutoCommit());
+                    synchronized (connections) {
+                        connections.put(context, conn);
+                    }
+                    context.addDataSource(this);
+                    logger.debug(">>>>>>>>>>>dataSourceId " + dataSourceId + " request " + context + " connection " + conn.hashCode() + " create.");
+                }
+                else {
+                    logger.debug(">>>>>>>>>>>dataSourceId " + dataSourceId + " request " + context + " connection " + conn.hashCode() + " reuse.");
+                }
                 return conn;
             }
+        }
+        else {
+            logger.debug(">>>>>>>>>>> No RequestContext found. set auto commit to true");
+            Connection conn = super.getConnection();
+            conn.setAutoCommit(true);
+            return conn;
+        }
     }
     
     public void closeConnection(RequestContext rc) {
@@ -126,8 +124,28 @@ public class ExtendedDataSource extends BasicDataSource {
         this.autoCommit = autoCommit;
     }
 
-    public ThreadLocal<RequestContext> getThreadContext() {
-        return threadContext;
+    public JdbcTemplate getJdbcTemplate() {
+        JdbcTemplate jt = null;
+        try {
+            if(RequestContext.localRequestContext.get() == null)
+                return new JdbcTemplate(this);
+            jt = new JdbcTemplate(new SingleConnectionDataSource(getConnection(), true));
+            return jt;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate() {
+        NamedParameterJdbcTemplate jt = null;
+        try {
+            if(RequestContext.localRequestContext.get() == null)
+                return new NamedParameterJdbcTemplate(this);
+            jt = new NamedParameterJdbcTemplate(new SingleConnectionDataSource(getConnection(), true));
+            return jt;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

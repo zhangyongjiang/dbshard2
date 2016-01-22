@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RequestContext {
+    public static final ThreadLocal<RequestContext> localRequestContext = new ThreadLocal<>();
+    
 	private List<ExtendedDataSource> dataSourcesUsedByRequest = new ArrayList<ExtendedDataSource>();
 	
 	public void addDataSource(ExtendedDataSource dataSource) {

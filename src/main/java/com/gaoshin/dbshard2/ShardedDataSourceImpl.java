@@ -47,9 +47,9 @@ public class ShardedDataSourceImpl implements ShardedDataSource {
 	}
 
 	@Override
-	public ExtendedDataSource getDataSourceByShardId(RequestContext tc, int shardId) {
+	public ExtendedDataSource getDataSourceByShardId(int shardId) {
 		int datasourceId = shardId / getShardsPerDataSource();
-		return getDataSourceByDataSourceId(tc, datasourceId);
+		return getDataSourceByDataSourceId(datasourceId);
 	}
 
 	public String getUserName() {
@@ -102,7 +102,7 @@ public class ShardedDataSourceImpl implements ShardedDataSource {
 	}
 
 	@Override
-	public ExtendedDataSource getDataSourceByDataSourceId(RequestContext tc, int dataSourceId) {
+	public ExtendedDataSource getDataSourceByDataSourceId(int dataSourceId) {
         ExtendedDataSource ds = null;
         boolean newDataSource = false;
         
@@ -140,7 +140,6 @@ public class ShardedDataSourceImpl implements ShardedDataSource {
             }
         }
 	    
-		ds.setThreadContext(tc);
 		return ds;
 	}
 
@@ -153,9 +152,9 @@ public class ShardedDataSourceImpl implements ShardedDataSource {
 	}
 
 	@Override
-	public ExtendedDataSource getDataSourceByObjectId(RequestContext tc, String id) {
+	public ExtendedDataSource getDataSourceByObjectId(String id) {
 		ObjectId oi = new ObjectId(id);
-		return getDataSourceByShardId(tc, oi.getShard());
+		return getDataSourceByShardId(oi.getShard());
 	}
 
 	public int getMaxTotal() {

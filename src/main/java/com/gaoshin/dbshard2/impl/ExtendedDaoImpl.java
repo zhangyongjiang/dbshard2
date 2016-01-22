@@ -235,8 +235,8 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 				}
 			}
 
-			ExtendedDataSource dataSource = dao.getShardedDataSource().getDataSourceByObjectId(threadContext.get(), (String)values[0]);
-			JdbcTemplate jt = getJdbcTemplate(dataSource);
+			ExtendedDataSource dataSource = dao.getShardedDataSource().getDataSourceByObjectId((String)values[0]);
+			JdbcTemplate jt = dataSource.getJdbcTemplate();
 			ret += jt.update(sql.toString(), values);
 		}
 		return ret;
@@ -385,8 +385,8 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			getValues(obj, mapping.column(), list);
 			for(Object sid : list) {
 				ExtendedDao dao = getDaoForClass(mapping.map2cls());
-				ExtendedDataSource dataSource = dao.getShardedDataSource().getDataSourceByObjectId(threadContext.get(), (String)sid);
-				JdbcTemplate jt = getJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = dao.getShardedDataSource().getDataSourceByObjectId((String)sid);
+				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				String sql = "delete from " + table + " where sid='" + obj.id + "'";
 				ret += jt.update(sql);
 			}
@@ -546,8 +546,8 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	@Override
 	public List<ObjectData> indexLookup(Class cls, String field, String indexedId, int offset, int size){
 		ClassIndex index = indexByKeys(cls, Arrays.asList(field));
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(threadContext.get(), indexedId);
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(indexedId);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		String sql = "select * from " + index.getTableName() + " where " + field + " = :field limit " + offset + ", " + size;
 		List<IndexedData> data = namedjc.query(sql.toString(), Collections.singletonMap("field", indexedId), new IndexedDataRowMapper());
 		List<String> ids = new ArrayList<>();
@@ -619,9 +619,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	public List<MappedData> mappedLookup(Class pclass, Class sclass, String pid) {
 		ClassTable ct = new ClassTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
-		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(threadContext.get(), pid);
+		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select * from " + cm.getTableName() + " where pid = :pid";
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		List<MappedData> data = namedjc.query(sql, Collections.singletonMap("pid", pid), new MappedDataRowMapper());
 		return data;
 	}
@@ -630,9 +630,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	public int mappedCountLookup(Class pclass, Class sclass, String pid) {
 		ClassTable ct = new ClassTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
-		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(threadContext.get(), pid);
+		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select count(*) from " + cm.getTableName() + " where pid = :pid";
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		int cnt = namedjc.queryForObject(sql, Collections.singletonMap("pid", pid), Integer.class);
 		return cnt;
 	}
@@ -641,9 +641,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	public List<MappedData> mappedLookup(Class pclass, Class sclass, String pid, int offset, int size) {
 		ClassTable ct = new ClassTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
-		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(threadContext.get(), pid);
+		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select * from " + cm.getTableName() + " where pid = :pid order by created desc limit " + offset + "," + size;
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		List<MappedData> data = namedjc.query(sql, Collections.singletonMap("pid", pid), new MappedDataRowMapper());
 		return data;
 	}
@@ -695,8 +695,8 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	@Override
 	public <Z> List<Z> indexBeanLookup(Class<Z> cls, String field, String indexedId, int offset, int size) {
 		ClassIndex index = indexByKeys(cls, Arrays.asList(field));
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(threadContext.get(), indexedId);
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(indexedId);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		String sql = "select * from " + index.getTableName() + " where " + new ColumnPath(field).getColumnName() + " = :field order by created desc limit " + offset + ", " + size;
 		List<IndexedData> data = namedjc.query(sql.toString(), Collections.singletonMap("field", indexedId), new IndexedDataRowMapper());
 		List<String> ids = new ArrayList<>();
@@ -709,8 +709,8 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	@Override
 	public <Z> List<Z> indexBeanLikeLookup(Class<Z> cls, String field, String indexedId, int offset, int size) {
 		ClassIndex index = indexByKeys(cls, Arrays.asList(field));
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(threadContext.get(), indexedId);
-		NamedParameterJdbcTemplate namedjc = getNamedParameterJdbcTemplate(dataSource);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(indexedId);
+		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
 		String sql = "select * from " + index.getTableName() + " where " + new ColumnPath(field).getColumnName() + " like :field order by created desc limit " + offset + ", " + size;
 		List<IndexedData> data = namedjc.query(sql.toString(), Collections.singletonMap("field", indexedId), new IndexedDataRowMapper());
 		List<String> ids = new ArrayList<>();
@@ -758,12 +758,12 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 
 	@Override
 	public <T> void forEachBean(final Class<T> cls, final BeanHandler<T> handler) {
-		ShardRunnable runnable = new RequestAwareShardRunnable(threadContext.get()) {
+		ShardRunnable runnable = new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				String sql = "select json from " + getTableManager().getObjectDataTable(cls);
-				JdbcTemplate jt = getJdbcTemplate(dataSource);
+				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				jt.query(sql, new RowCallbackHandler() {
 					@Override
 					public void processRow(ResultSet rs) throws SQLException {
@@ -783,12 +783,12 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 
 	@Override
 	public void forEachRawBean(final Class cls, final BeanHandler<ObjectData> handler) {
-		ShardRunnable runnable = new RequestAwareShardRunnable(threadContext.get()) {
+		ShardRunnable runnable = new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				String sql = "select * from " + getTableManager().getObjectDataTable(cls);
-				JdbcTemplate jt = getJdbcTemplate(dataSource);
+				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				jt.query(sql, new RowCallbackHandler() {
 					@Override
 					public void processRow(ResultSet arg0) throws SQLException {
@@ -891,11 +891,11 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	@Override
 	public <T> List<T> query(final String sql, final RowMapper<T> mapper) {
 		final List<T> list = new ArrayList<T>();
-		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSource(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				JdbcTemplate jt = getJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				List<T> result = jt.query(sql, mapper);
 				synchronized (list) {
 					list.addAll(result);
@@ -908,11 +908,11 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	@Override
 	public <T> List<T> queryBeans(final String sql, final Class<T>cls) {
 		final List<T> list = new ArrayList<T>();
-		forEachDataSource(new RequestAwareShardRunnable(threadContext.get()) {
+		forEachDataSource(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(getTc(), dataSourceId);
-				JdbcTemplate jt = getJdbcTemplate(dataSource);
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				List<T> result = jt.query(sql, new RowMapper<T>(){
 					@Override
 					public T mapRow(ResultSet rs, int rowNum)
