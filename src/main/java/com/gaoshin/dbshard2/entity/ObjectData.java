@@ -26,10 +26,9 @@ public class ObjectData implements Serializable {
 	public String id;
 	@JsonRawValue public String json;
 	public long created;
-	public long updated;
 	
 	public ObjectData() {
-		created = updated = common.util.DateUtil.currentTimeMillis();
+		created = common.util.DateUtil.currentTimeMillis();
 	}
 	
 }

@@ -109,13 +109,10 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 
 		obj.json = null;
 		if(obj.created == 0)
-			obj.created = obj.updated = common.util.DateUtil.currentTimeMillis();
-		else if (obj.updated == 0)
-			obj.updated = common.util.DateUtil.currentTimeMillis();
+			obj.created = common.util.DateUtil.currentTimeMillis();
 		
 		ObjectData od = new ObjectData();
 		od.created = obj.created;
-		od.updated = obj.updated;
 		
 		String id = obj.id;
 		if(id == null) {
@@ -153,9 +150,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
         
         obj.json = null;
         if(obj.created == 0)
-            obj.created = obj.updated = common.util.DateUtil.currentTimeMillis();
-        else
-            obj.updated = common.util.DateUtil.currentTimeMillis();
+            obj.created = common.util.DateUtil.currentTimeMillis();
         
         try {
             String json = objectMapper.writeValueAsString(obj);
@@ -175,9 +170,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
         
         obj.json = null;
         if(obj.created == 0)
-            obj.created = obj.updated = common.util.DateUtil.currentTimeMillis();
-        else
-            obj.updated = common.util.DateUtil.currentTimeMillis();
+            obj.created = common.util.DateUtil.currentTimeMillis();
         
         ObjectData indb = getBean(obj.getClass(), id);
         removeIndexesForBean(indb);
@@ -802,7 +795,6 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 						ObjectData row = new ObjectData();
 						row.id = arg0.getString("id");
 						row.created = arg0.getLong("created");
-						row.updated = arg0.getLong("updated");
 						row.json = arg0.getString("json");
 						handler.processBean(row);
 					}
