@@ -46,7 +46,7 @@ public class ObjectId {
 	public ObjectId(String strid) {
 		try {
 			setShard(Short.parseShort(strid.substring(0,3), 16));
-			setUuid(strid.substring(6));
+			setUuid(strid.substring(3,39));
 		} catch (Exception e) {
 			throw new InvalidIdException(strid);
 		}
