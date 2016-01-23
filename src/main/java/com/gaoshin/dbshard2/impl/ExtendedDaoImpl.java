@@ -762,7 +762,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			@Override
 			public void run(int dataSourceId) {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
-				String sql = "select json from " + getTableManager().getObjectDataTable(cls);
+				String sql = "select json from " + cls.getSimpleName();
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				jt.query(sql, new RowCallbackHandler() {
 					@Override
@@ -787,7 +787,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			@Override
 			public void run(int dataSourceId) {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
-				String sql = "select * from " + getTableManager().getObjectDataTable(cls);
+				String sql = "select * from " + cls.getSimpleName();
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				jt.query(sql, new RowCallbackHandler() {
 					@Override

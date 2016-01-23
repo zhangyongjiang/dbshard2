@@ -43,7 +43,6 @@ import com.gaoshin.dbshard2.ExtendedDataSource;
 import com.gaoshin.dbshard2.ObjectId;
 import com.gaoshin.dbshard2.ShardResolver;
 import com.gaoshin.dbshard2.ShardedDataSource;
-import com.gaoshin.dbshard2.TableManager;
 import com.gaoshin.dbshard2.entity.IndexedData;
 import com.gaoshin.dbshard2.entity.ObjectData;
 import common.util.JacksonUtil;
@@ -57,7 +56,6 @@ public class BaseDaoImpl implements BaseDao {
 	protected ShardResolver shardResolver;
 	protected ShardedDataSource shardedDataSource;
 	protected ExecutorService executorService;
-	protected TableManager tableManager;
 	
 	public ShardResolver getShardResolver() {
 		return shardResolver;
@@ -76,12 +74,6 @@ public class BaseDaoImpl implements BaseDao {
 	}
 	public void setExecutorService(ExecutorService executorService) {
 		this.executorService = executorService;
-	}
-	public TableManager getTableManager() {
-		return tableManager;
-	}
-	public void setTableManager(TableManager tableManager) {
-		this.tableManager = tableManager;
 	}
 	
 	@Override
@@ -406,7 +398,6 @@ public class BaseDaoImpl implements BaseDao {
 	}
 	
 	protected List<IndexedData> indexedLookup(Integer dataSourceId, final ClassIndex index, final Map<String, Object> values) {
-		String key = getTableManager().getIndexedLookupKey(index, values);
 		Map<String, Object> params = new HashMap<String, Object>();
 		String table = index.getTableName();
 		final StringBuilder sql = new StringBuilder("select * from ").append(table);

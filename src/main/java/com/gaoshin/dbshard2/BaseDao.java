@@ -31,7 +31,6 @@ import com.gaoshin.dbshard2.entity.ObjectData;
 
 public interface BaseDao extends Dao {
 	ShardResolver getShardResolver();
-	TableManager getTableManager();
 	ShardedDataSource getShardedDataSource();
 	int getDataSourceIdForObjectId(String id);
 	
