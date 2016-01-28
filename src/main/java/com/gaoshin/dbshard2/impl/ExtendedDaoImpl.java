@@ -35,9 +35,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gaoshin.dbshard2.ClassIndex;
 import com.gaoshin.dbshard2.ClassMapping;
 import com.gaoshin.dbshard2.ClassTable;
@@ -59,14 +56,6 @@ import common.util.reflection.ReflectionUtil;
 
 public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	private static Logger logger = Logger.getLogger(ExtendedDaoImpl.class);
-	
-	private static ObjectMapper objectMapper;
-	static {
-		objectMapper = new ObjectMapper();
-		objectMapper.setSerializationInclusion(Include.NON_NULL);
-		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		objectMapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
-	}
 	
 	private List<Class> forClasses;
 	
