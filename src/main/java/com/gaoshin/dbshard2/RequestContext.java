@@ -22,7 +22,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RequestContext {
-    public static final ThreadLocal<RequestContext> localRequestContext = new ThreadLocal<>();
+    private static final ThreadLocal<RequestContext> localRequestContext = new ThreadLocal<>();
+    
+    public synchronized static RequestContext getRequestContext() {
+        RequestContext context = localRequestContext.get();
+//        if(context == null) {
+//            context = new RequestContext();
+//            localRequestContext.set(context);
+//        }
+        return context;
+    }
+    
+    public synchronized static void setRequestContext(RequestContext rc) {
+        localRequestContext.set(rc);
+    }
     
 	private List<ExtendedDataSource> dataSourcesUsedByRequest = new ArrayList<ExtendedDataSource>();
 	

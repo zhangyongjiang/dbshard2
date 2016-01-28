@@ -27,19 +27,16 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.gaoshin.dbshard2.entity.IndexedData;
-import com.gaoshin.dbshard2.entity.ObjectData;
 
 public interface BaseDao extends Dao {
 	ShardResolver getShardResolver();
 	ShardedDataSource getShardedDataSource();
 	int getDataSourceIdForObjectId(String id);
 	
-	int create(Class cls, ObjectData obj);
-	int update(Class cls, ObjectData obj);
-	ObjectData objectLookup(Class cls, String id);
-	List<ObjectData> objectLookup(Class cls, Collection<String> ids);
-	List<ObjectData> sqlLookup(String sql);
-	List<ObjectData> sqlLookup(String sql, int dataSourceId);
+	<T> int create(T obj);
+	<T> int update(T obj);
+	<T> T objectLookup(Class<T> cls, String id);
+	<T> List<T> objectLookup(Class<T> cls, List<String> ids);
 	int delete(Class cls, String id);
 	int deleteAll(Class cls, Collection<String> ids);
 	
@@ -48,17 +45,17 @@ public interface BaseDao extends Dao {
 	List<IndexedData> indexLookup(int dataSourceId, final String sql, final Map<String, Object> values);
 	int indexCountLookup(int dataSourceId, final String sql, final Map<String, Object> values);
 	int deleteIndexData(ClassIndex ind, String id) ;
-	<T>List<T> indexQuery(int dataSourceId, String sql,
+	<T>List<T> query(int dataSourceId, String sql,
 			Map<String, Object> params, RowMapper<T> rowMapper);
-	<T>List<T> indexQuery(String sql,
+	<T>List<T> query(String sql,
 			Map<String, Object> params, RowMapper<T> rowMapper);
-	<T>List<T> indexQuery(String sql, RowMapper<T> rowMapper);
+	<T>List<T> query(String sql, RowMapper<T> rowMapper);
 	
 	int updateAll(String sql, Object...objects );
 	int updateAll(String sql, Map<String, ?> params);
 
-	<T extends ObjectData> List<T> objectLookup(final Class<T> cls);
-	<T extends ObjectData> List<T> objectLookup(final Class<T> cls, int offset, int size);
+	<T> List<T> objectLookup(final Class<T> cls);
+	<T> List<T> objectLookup(final Class<T> cls, int offset, int size);
 
 	void dumpTable(OutputStream output, String tableName, String fields);
 	

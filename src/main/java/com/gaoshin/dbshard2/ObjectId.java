@@ -33,12 +33,7 @@ public class ObjectId {
 		uuid = UuidUtil.randomType1Uuid();
 	}
 	
-	public ObjectId(Class cls, int shardId) {
-		this.shard = shardId;
-		uuid = UuidUtil.randomType1Uuid();
-	}
-	
-	public ObjectId(Class cls, int shardId, String uuid) {
+	public ObjectId(int shardId, String uuid) {
 		this.shard = shardId;
 		this.uuid = uuid;
 	}

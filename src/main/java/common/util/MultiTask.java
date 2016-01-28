@@ -71,18 +71,19 @@ public class MultiTask {
 
 		public TaskRunnable(Runnable r) {
 			this.actual = r;
-			rc = RequestContext.localRequestContext.get();
+			rc = RequestContext.getRequestContext();
 		}
 		
 		@Override
 		public void run() {
 			try {
-			    RequestContext.localRequestContext.set(rc);
+			    RequestContext.setRequestContext(rc);
 				actual.run();
 			} catch (Exception e) {
 				this.e = e;
 			}
 			finally {
+                RequestContext.setRequestContext(null);
 				synchronized (MultiTask.this) {
 					finished++;
 					if(finished >= tasks.size()) {

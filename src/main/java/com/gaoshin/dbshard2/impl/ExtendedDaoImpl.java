@@ -33,11 +33,9 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gaoshin.dbshard2.ClassIndex;
@@ -56,7 +54,6 @@ import com.gaoshin.dbshard2.ShardedTable;
 import com.gaoshin.dbshard2.TimeRange;
 import com.gaoshin.dbshard2.entity.IndexedData;
 import com.gaoshin.dbshard2.entity.MappedData;
-import com.gaoshin.dbshard2.entity.ObjectData;
 import common.util.DateUtil;
 import common.util.reflection.ReflectionUtil;
 
@@ -85,9 +82,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 	
 	@Override
-	public String generateIdForBean(ObjectData obj) {
+	public String generateIdForBean(Object obj) {
 		int shardId = getShardResolver().getShardId(obj);
-		ObjectId oi = new ObjectId(obj.getClass(), shardId);
+		ObjectId oi = new ObjectId(shardId);
 		String id = oi.toString();
 		return id;
 	}	
@@ -100,34 +97,23 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 	
 	@Override
-	public void createBean(ObjectData obj) {
-		if(obj.getClass().equals(ObjectData.class))
-			throw new RuntimeException("use BaseDao.create method");
-		
+	public void createBean(Object obj) {
 		if(!forClasses.contains(obj.getClass()))
 			throw new RuntimeException("cannot use " + this.getClass().getSimpleName() + " to create " + obj.getClass());
 
-		obj.json = null;
-		if(obj.created == 0)
-			obj.created = common.util.DateUtil.currentTimeMillis();
-		
-		ObjectData od = new ObjectData();
-		od.created = obj.created;
-		
-		String id = obj.id;
+		String id = getId(obj);
 		if(id == null) {
 			id = generateIdForBean(obj);
-			obj.id = id;
+			ReflectionUtil.setFieldValue(obj, "id", id);
 		}
-		od.id = id;
 		
-		try {
-			String json = objectMapper.writeValueAsString(obj);
-			od.json = json ;
-		} catch (JsonProcessingException e) {
-			throw new RuntimeException("json error", e);
+		Long created = getCreated(obj);
+		if(created == null) {
+		    created = DateUtil.currentTimeMillis();
+            ReflectionUtil.setFieldValue(obj, "created", created);
 		}
-		super.create(obj.getClass(), od);
+		
+		super.create(obj);
 		addIndexesForBean(obj);
 		addMappingsForBean(obj);
 	}
@@ -137,57 +123,19 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		forEachBean(cls, new BeanHandler() {
 			@Override
 			public void processBean(Object bean) {
-				updateBeanAndIndexAndMapping((ObjectData) bean);
+				updateBeanAndIndexAndMapping(bean);
 			}
 		});
 	}
 
     @Override
-    public void updateBean(ObjectData obj) {
-        ObjectData od = new ObjectData();
-        od.id = obj.id;
-        od.created = obj.created;
-        
-        obj.json = null;
-        if(obj.created == 0)
-            obj.created = common.util.DateUtil.currentTimeMillis();
-        
-        try {
-            String json = objectMapper.writeValueAsString(obj);
-            od.json = json ;
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("json error", e);
-        }
-        super.update(obj.getClass(), od);
-    }
-
-    @Override
-    public void updateBeanAndIndexAndMapping(ObjectData obj) {
-        ObjectData od = new ObjectData();
-        od.id = obj.id;
-        od.created = obj.created;
-        String id = obj.id;
-        
-        obj.json = null;
-        if(obj.created == 0)
-            obj.created = common.util.DateUtil.currentTimeMillis();
-        
-        ObjectData indb = getBean(obj.getClass(), id);
-        removeIndexesForBean(indb);
-        removeMappingsForBean(indb);
-        
-        try {
-            String json = objectMapper.writeValueAsString(obj);
-            od.json = json ;
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("json error", e);
-        }
-        super.update(obj.getClass(), od);
+    public void updateBeanAndIndexAndMapping(Object obj) {
+        super.update(obj);
         addIndexesForBean(obj);
         addMappingsForBean(obj);
     }
 	
-	protected int addIndexesForBean(ObjectData obj){
+	protected int addIndexesForBean(Object obj){
 		int ret = 0;
 		ShardedTable annotation = obj.getClass().getAnnotation(ShardedTable.class);
 		for(Index index : annotation.indexes()) {
@@ -196,7 +144,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		return ret;
 	}
 	
-	protected int addMappingsForBean(ObjectData obj){
+	protected int addMappingsForBean(Object obj){
 		int ret = 0;
 		ShardedTable annotation = obj.getClass().getAnnotation(ShardedTable.class);
 		for(Mapping mapping : annotation.mappings()) {
@@ -224,8 +172,8 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
-			values[1] = obj.id;
-			values[2] = obj.created;
+			values[1] = getId(obj);
+			values[2] = getCreated(obj);
 			
 			for(int i = 0; i< mapping.otherColumns().length; i++) {
 				try {
@@ -246,7 +194,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		return DaoManager.getInstance().get(cls);
 	}
 	
-	protected int addIndexForBean(Index index, ObjectData obj){
+	protected int addIndexForBean(Index index, Object obj){
 		ClassIndex ti = new ClassIndex(obj.getClass(), index);
 		List<ColumnValues> columnValues = new ArrayList<ColumnValues>();
 		for(String indexColumnName : index.value()) {
@@ -263,8 +211,8 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		int ret = 0;
 		List<Map> values = valueCombination(columnValues);
 		for(Map m : values) {
-			m.put("id", obj.id);
-			m.put("created", obj.created);
+			m.put("id", getId(obj));
+			m.put("created", getCreated(obj));
 			ret += super.createIndex(ti, m);
 		}
 		
@@ -335,36 +283,34 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		}
 	}
 	
-	public static ShardedTable getTableForBean(ObjectData obj) {
+	public static ShardedTable getTableForBean(Object obj) {
 		return obj.getClass().getAnnotation(ShardedTable.class);
 	}
 	
-	protected int removeIndexesForBean(ObjectData obj){
+	protected int removeIndexesForBean(Object obj){
 		int ret = 0;
 		for(Index index : getTableForBean(obj).indexes()) {
 			ClassIndex ti = new ClassIndex();
 			ti.index = index;
 			ti.forClass = obj.getClass();
-			deleteIndexData(ti, obj.id);
+			deleteIndexData(ti, (String)ReflectionUtil.getFieldValue(obj, "id"));
 		}
 		return ret;
 	}
 	
 	@Override
 	public int delete(Class cls, String id) {
-		ObjectData od = getBean(cls, id);
+		Object od = objectLookup(cls, id);
 		removeIndexesForBean(od);
 		removeMappingsForBean(od);
 		return super.delete(cls, id);
 	}
 	
 	@Override
-	public int deleteBean(ObjectData od) {
-		if(od.getClass().equals(ObjectData.class))
-			throw new RuntimeException(od.getClass() + " is not a subclass of ObjectData");
+	public int deleteBean(Object od) {
 		removeIndexesForBean(od);
 		removeMappingsForBean(od);
-		return super.delete(od.getClass(), od.id);
+		return super.delete(od.getClass(), getId(od));
 	}
 	
 	@Override
@@ -376,7 +322,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		return total;
 	}
 	
-	protected int removeMappingsForBean(ObjectData obj){
+	protected int removeMappingsForBean(Object obj){
 		int ret = 0;
 		for(Mapping mapping : getTableForBean(obj).mappings()) {
 			ClassMapping cm = new ClassMapping(obj.getClass(), mapping);
@@ -387,7 +333,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 				ExtendedDao dao = getDaoForClass(mapping.map2cls());
 				ExtendedDataSource dataSource = dao.getShardedDataSource().getDataSourceByObjectId((String)sid);
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
-				String sql = "delete from " + table + " where sid='" + obj.id + "'";
+				String sql = "delete from " + table + " where sid='" + ReflectionUtil.getFieldValue(obj, "id") + "'";
 				ret += jt.update(sql);
 			}
 		}
@@ -395,86 +341,14 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 	
 	@Override
-	public <Z>Z getBean(Class cls, String id) {
-		Z value = null;
-		ObjectData data = super.objectLookup(cls, id);
-		if(data != null){
-			try {
-				value = (Z) objectMapper.readValue(data.json, cls);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-		return value;
-	}
-
-	@Override
-	public <T>List<T> listBeans(Class cls, Collection<String> ids) {
-		List result = new ArrayList();
-		List<ObjectData> list = super.objectLookup(cls, ids);
-		HashMap<String, T> map = new HashMap<String, T>();
-		if(list.size() > 0){
-			for (ObjectData data : list) {
-				try {
-					map.put(data.id, (T)objectMapper.readValue(data.json, cls));
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			}
-			for(ObjectData od : list) {
-				T e = map.get(od.id);
-				if(e != null)
-				    result.add(e);
-			}
-		}
-		return result;
-	}
-	
-	@Override
-	public <T> List<T> sqlBeanLookup(Class cls, String sql) {
-		List<ObjectData> list = super.sqlLookup(sql);
-		List result = new ArrayList();
-		if(list.size() > 0){
-			for (ObjectData data : list) {
-				try {
-					result.add(objectMapper.readValue(data.json, cls));
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}
-		return result;
-	}
-	
-	@Override
-	public <T> List<T> sqlBeanLookup(Class cls, String sql, int dataSourceId) {
-		List<ObjectData> list = super.sqlLookup(sql, dataSourceId);
-		List result = new ArrayList();
-		if(list.size() > 0){
-			for (ObjectData data : list) {
-				try {
-					result.add(objectMapper.readValue(data.json, cls));
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}
-		return result;
-	}
-	
-	@Override
-	public void removeBeans(List<? extends ObjectData> list) {
-		for(ObjectData od : list) {
-			if(od.getClass().equals(ObjectData.class))
-				throw new RuntimeException(od.getClass() + " is not a subclass of ObjectData.");
-			removeIndexesForBean(od);
-			removeMappingsForBean(od);
-			super.delete(od.getClass(), od.id);
+	public void removeBeans(List list) {
+		for(Object od : list) {
+		    deleteBean(od);
 		}
 	}
 
 	@Override
-	public List<ObjectData> indexLookup(Class cls, String field, Object value, int dataSourceId){
+	public <T> List<T> indexLookup(Class<T> cls, String field, Object value, int dataSourceId){
 		ClassIndex index = indexByKeys(cls, Arrays.asList(field));
 		List<String> ids = new ArrayList<>();
 		for(IndexedData id: super.indexedLookup(dataSourceId, index,Collections.singletonMap(field, value))){
@@ -484,7 +358,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
-	public List<ObjectData> indexLookup(Class cls, String field, Object value){
+	public <T> List<T> indexLookup(Class<T> cls, String field, Object value){
 		ClassIndex index = indexByKeys(cls, Arrays.asList(field));
 		List<String> ids = new ArrayList<>();
 		for(IndexedData id: super.indexedLookup(null, index,Collections.singletonMap(field, value))){
@@ -500,7 +374,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
-	public List<ObjectData> indexLookup(Class cls,
+	public <T> List<T> indexLookup(Class<T> cls,
 			Map<String, Object> keyValues) {
 		ClassIndex index = indexByKeys(cls, keyValues.keySet());
 		List<String> ids = new ArrayList<>();
@@ -513,7 +387,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
-	public List<ObjectData> indexLookup(Class cls,
+	public <T> List<T> indexLookup(Class<T> cls,
 			Map<String, Object> keyValues, int dataSourceId) {
 		ClassIndex index = indexByKeys(cls, keyValues.keySet());
 		List<String> ids = new ArrayList<>();
@@ -544,7 +418,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
-	public List<ObjectData> indexLookup(Class cls, String field, String indexedId, int offset, int size){
+	public <T> List<T> indexLookup(Class<T> cls, String field, String indexedId, int offset, int size){
 		ClassIndex index = indexByKeys(cls, Arrays.asList(field));
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByObjectId(indexedId);
 		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
@@ -677,7 +551,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		for(IndexedData id: super.indexedLookup(null, index,Collections.singletonMap(field, value))){
 			ids.add(id.getId());
 		}
-		return (List<Z>) listBeans(cls, ids);
+		return objectLookup(cls, ids);
 	}
 
 	@Override
@@ -689,7 +563,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		for(IndexedData id: super.indexedLookup(dataSourceId, index,Collections.singletonMap(field, value))){
 			ids.add(id.getId());
 		}
-		return (List<Z>) listBeans(cls, ids);
+		return objectLookup(cls, ids);
 	}
 	
 	@Override
@@ -703,7 +577,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		for(IndexedData id: data){
 			ids.add(id.getId());
 		}
-		return listBeans(cls, ids);
+		return objectLookup(cls, ids);
 	}
 	
 	@Override
@@ -717,7 +591,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		for(IndexedData id: data){
 			ids.add(id.getId());
 		}
-		return listBeans(cls, ids);
+		return objectLookup(cls, ids);
 	}
 
 	@Override
@@ -728,32 +602,22 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		for(IndexedData id: super.indexedLookup(null, index,keyValues)){
 			ids.add(id.getId());
 		}
-		return (List<Z>) listBeans(cls, ids);
+		return objectLookup(cls, ids);
 	}
 
 	@Override
-	public <T extends ObjectData> List<T> beanLookup(Class<T> cls, int offset,
-			int size) {
-		List<T> objs = objectLookup(cls, offset, size);
-		List<T> beans = new ArrayList<T>();
-		for (ObjectData data : objs) {
-			try {
-				beans.add(objectMapper.readValue(data.json, cls));
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+	public <T> Map<String, T> mapBeans(Class<T> cls, List<String> ids) {
+		Map<String, T> map = new HashMap<String, T>();
+		List<T> list = objectLookup(cls, ids);
+		for(T od : list) {
+		    try {
+                String id = (String) ReflectionUtil.getFieldValue(od, "id");
+                map.put(id, od);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
 		}
-		return beans;
-	}
-
-	@Override
-	public <T> Map<String, T> mapBeans(Class cls, Collection<String> ids) {
-		Map<String, Object> map = new HashMap<String, Object>();
-		List<ObjectData> list = listBeans(cls, ids);
-		for(ObjectData od : list) {
-			map.put(od.id, od);
-		}
-		return (Map<String, T>) map;
+		return map;
 	}
 
 	@Override
@@ -762,41 +626,18 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			@Override
 			public void run(int dataSourceId) {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
-				String sql = "select json from " + cls.getSimpleName();
+				String sql = "select * from " + cls.getSimpleName();
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
+				final ReflectionRowMapper<T> mapper = new ReflectionRowMapper(cls);
 				jt.query(sql, new RowCallbackHandler() {
 					@Override
 					public void processRow(ResultSet rs) throws SQLException {
-						String json = rs.getString("json");
 						try {
-							T bean = objectMapper.readValue(json, cls);
-							handler.processBean(bean);
+						    T t = (T) mapper.mapRow(rs);
+							handler.processBean(t);
 						} catch (Exception e) {
 							throw new RuntimeException(e);
 						}
-					}
-				});
-			}
-		};
-		forEachDataSourceOneByOne(runnable );
-	}
-
-	@Override
-	public void forEachRawBean(final Class cls, final BeanHandler<ObjectData> handler) {
-		ShardRunnable runnable = new ShardRunnable() {
-			@Override
-			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
-				String sql = "select * from " + cls.getSimpleName();
-				JdbcTemplate jt = dataSource.getJdbcTemplate();
-				jt.query(sql, new RowCallbackHandler() {
-					@Override
-					public void processRow(ResultSet arg0) throws SQLException {
-						ObjectData row = new ObjectData();
-						row.id = arg0.getString("id");
-						row.created = arg0.getLong("created");
-						row.json = arg0.getString("json");
-						handler.processBean(row);
 					}
 				});
 			}
@@ -819,7 +660,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		for(IndexedData id: data){
 			ids.add(id.getId());
 		}
-		return listBeans(cls, ids);
+		return objectLookup(cls, ids);
 	}
 
 	@Override
@@ -831,7 +672,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		for(IndexedData id: data){
 			ids.add(id.getId());
 		}
-		return listBeans(cls, ids);
+		return objectLookup(cls, ids);
 	}
 
 	@Override
@@ -880,30 +721,21 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		for(IndexedData id: data){
 			ids.add(id.getId());
 		}
-		return listBeans(cls, ids);
+		return objectLookup(cls, ids);
 	}
 
 	@Override
 	public List<Class> listManagedClasses() {
 		return forClasses;
 	}
-	
-	@Override
-	public <T> List<T> query(final String sql, final RowMapper<T> mapper) {
-		final List<T> list = new ArrayList<T>();
-		forEachDataSource(new ShardRunnable() {
-			@Override
-			public void run(int dataSourceId) {
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
-				JdbcTemplate jt = dataSource.getJdbcTemplate();
-				List<T> result = jt.query(sql, mapper);
-				synchronized (list) {
-					list.addAll(result);
-				}
-			}
-		});
-		return list;
-	}
+    
+    @Override
+    public <T> List<T> queryBeans(final String sql, final Class<T>cls, int dataSourceId) {
+        ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+        JdbcTemplate jt = dataSource.getJdbcTemplate();
+        List<T> result = jt.query(sql, new ReflectionRowMapper(cls));
+        return result;
+    }
 	
 	@Override
 	public <T> List<T> queryBeans(final String sql, final Class<T>cls) {
@@ -913,18 +745,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			public void run(int dataSourceId) {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
-				List<T> result = jt.query(sql, new RowMapper<T>(){
-					@Override
-					public T mapRow(ResultSet rs, int rowNum)
-							throws SQLException {
-						try {
-							String json = rs.getString("json");
-							T obj = objectMapper.readValue(json, cls);
-							return obj;
-						} catch (Exception e) {
-							throw new RuntimeException(e);
-						}
-					}});
+				List<T> result = jt.query(sql, new ReflectionRowMapper(cls));
 				synchronized (list) {
 					list.addAll(result);
 				}
@@ -934,28 +755,28 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
-	public ObjectData indexLookupForOne(Class cls, String field, Object value) {
-		List<ObjectData> list = indexLookup(cls, field, value);
+	public <T> T indexLookupForOne(Class<T> cls, String field, Object value) {
+		List<T> list = indexLookup(cls, field, value);
 		return list.size() == 0 ? null : list.get(0);
 	}
 
 	@Override
-	public ObjectData indexLookupForOne(Class cls, Map<String, Object> keyValues) {
-		List<ObjectData> list = indexLookup(cls, keyValues);
+	public <T> T indexLookupForOne(Class<T> cls, Map<String, Object> keyValues) {
+		List<T> list = indexLookup(cls, keyValues);
 		return list.size() == 0 ? null : list.get(0);
 	}
 
 	@Override
-	public ObjectData indexLookupForOne(Class cls, String field, Object value,
+	public <T> T indexLookupForOne(Class<T> cls, String field, Object value,
 			int dataSourceId) {
-		List<ObjectData> list = indexLookup(cls, field, value, dataSourceId);
+		List<T> list = indexLookup(cls, field, value, dataSourceId);
 		return list.size() == 0 ? null : list.get(0);
 	}
 
 	@Override
-	public ObjectData indexLookupForOne(Class cls,
+	public <T> T indexLookupForOne(Class<T> cls,
 			Map<String, Object> keyValues, int dataSourceId) {
-		List<ObjectData> list = indexLookup(cls, keyValues, dataSourceId);
+		List<T> list = indexLookup(cls, keyValues, dataSourceId);
 		return list.size() == 0 ? null : list.get(0);
 	}
 
@@ -980,9 +801,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
-	public ObjectData indexLookupForOne(Class cls, String field, String id,
+	public <T> T indexLookupForOne(Class<T> cls, String field, String id,
 			int offset, int size) {
-		List<ObjectData> list = indexLookup(cls, field, id, offset, size);
+		List<T> list = indexLookup(cls, field, id, offset, size);
 		return list.size() == 0 ? null : list.get(0);
 	}
 

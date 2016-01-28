@@ -25,8 +25,7 @@ public class TransactionFilter implements Filter {
 	@Override
 	public void doFilter(ServletRequest req, ServletResponse resp,
 			FilterChain chain) throws IOException, ServletException {
-		RequestContext rc = new RequestContext();
-		RequestContext.localRequestContext.set(rc);
+		RequestContext rc = RequestContext.getRequestContext();
 		
 		try {
 			chain.doFilter(req, resp);
@@ -45,7 +44,7 @@ public class TransactionFilter implements Filter {
 			} catch (Exception e) {
 				System.err.println(e.getMessage());
 			}
-	        RequestContext.localRequestContext.set(null);
+	        RequestContext.setRequestContext(null);
 		}
 	}
 

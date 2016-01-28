@@ -46,7 +46,7 @@ public class ExtendedDataSource extends BasicDataSource {
     
     @Override
     public Connection getConnection() throws SQLException {
-        RequestContext context = RequestContext.localRequestContext.get();
+        RequestContext context = RequestContext.getRequestContext();
         if(context != null) {
             synchronized (context) {
                 Connection conn = null;
@@ -127,7 +127,7 @@ public class ExtendedDataSource extends BasicDataSource {
     public JdbcTemplate getJdbcTemplate() {
         JdbcTemplate jt = null;
         try {
-            if(RequestContext.localRequestContext.get() == null)
+            if(RequestContext.getRequestContext() == null)
                 return new JdbcTemplate(this);
             jt = new JdbcTemplate(new SingleConnectionDataSource(getConnection(), true));
             return jt;
@@ -139,7 +139,7 @@ public class ExtendedDataSource extends BasicDataSource {
     public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate() {
         NamedParameterJdbcTemplate jt = null;
         try {
-            if(RequestContext.localRequestContext.get() == null)
+            if(RequestContext.getRequestContext() == null)
                 return new NamedParameterJdbcTemplate(this);
             jt = new NamedParameterJdbcTemplate(new SingleConnectionDataSource(getConnection(), true));
             return jt;

@@ -21,10 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.jdbc.core.RowMapper;
-
 import com.gaoshin.dbshard2.entity.MappedData;
-import com.gaoshin.dbshard2.entity.ObjectData;
 import com.gaoshin.dbshard2.impl.BeanHandler;
 
 public interface ExtendedDao extends BaseDao {
@@ -32,25 +29,20 @@ public interface ExtendedDao extends BaseDao {
 	void createTables();
 
 	List<Class> listManagedClasses();
-	void createBean(ObjectData obj);
-    void updateBean(ObjectData obj);
-    void updateBeanAndIndexAndMapping(ObjectData obj);
+	void createBean(Object obj);
+    void updateBeanAndIndexAndMapping(Object obj);
 	int delete(Class cls, String id);
 	int deleteAll(Class cls, Collection<String> ids);
-	int deleteBean(ObjectData od);
-	<Z> Z getBean(Class cls, String id);
-	<T>List<T> listBeans(Class cls, Collection<String> ids);
-	<T>List<T> sqlBeanLookup(Class cls, String sql);
-	<T>List<T> sqlBeanLookup(Class cls, String sql, int dataSourceId);
-	<T>Map<String, T> mapBeans(Class cls, Collection<String> ids);
-	void removeBeans(List<? extends ObjectData> list);
-	<T> List<T> query(final String sql, final RowMapper<T> mapper);
-	<T> List<T> queryBeans(final String sql, Class<T>cls);
+	int deleteBean(Object od);
+	<T> Map<String, T> mapBeans(Class<T> cls, List<String> ids);
+	void removeBeans(List list);
+    <T> List<T> queryBeans(final String sql, Class<T>cls);
+    <T> List<T> queryBeans(final String sql, Class<T>cls, int dataSourceId);
 
-	List<ObjectData> indexLookup(Class cls, String field, Object value);
-	List<ObjectData> indexLookup(Class cls, Map<String, Object> keyValues);
-	List<ObjectData> indexLookup(Class cls, String field, Object value, int dataSourceId);
-	List<ObjectData> indexLookup(Class cls, Map<String, Object> keyValues, int dataSourceId);
+	<T> List<T> indexLookup(Class<T> cls, String field, Object value);
+	<T> List<T> indexLookup(Class<T> cls, Map<String, Object> keyValues);
+	<T> List<T> indexLookup(Class<T> cls, String field, Object value, int dataSourceId);
+	<T> List<T> indexLookup(Class<T> cls, Map<String, Object> keyValues, int dataSourceId);
 	int indexCountLookup(Class cls, String field, Object value, int dataSourceId);
 	int indexCountLookup(Class cls, Map<String, Object> keyValues, int dataSourceId);
 	int indexCountLookup(Class cls, String field, Object value);
@@ -58,7 +50,7 @@ public interface ExtendedDao extends BaseDao {
 	<Z>List<Z> indexBeanLookup(Class<Z>cls, String field, Object value);
 	<Z>List<Z> indexBeanLookup(Class<Z>cls, String field, Object value, int dataSourceId);
 	<Z>List<Z> indexBeanLookup(Class<Z>cls, Map<String, Object> keyValues);
-	List<ObjectData> indexLookup(Class cls, String field, String id, int offset, int size);
+	<T> List<T> indexLookup(Class<T> cls, String field, String id, int offset, int size);
 	<Z>List<Z> indexBeanLookup(Class<Z>cls, String field, String id, int offset, int size);
 	<Z>List<Z> indexBeanLookup(Class<Z>cls, Map<String, Object> keyValues, int offset, int size, int dataSourceId);
 	<Z>List<Z> indexBeanLookup(Class<Z>cls, Map<String, Object> keyValues, int dataSourceId);
@@ -66,14 +58,14 @@ public interface ExtendedDao extends BaseDao {
 	<Z> List<Z> indexBeanLookup(Class<Z>cls, String sql, Map<String, Object> keyValues, int dataSourceId);
 	<Z> List<Z> indexBeanLookup(Class<Z>cls, String sql, Map<String, Object> keyValues);
 	
-	ObjectData indexLookupForOne(Class cls, String field, Object value);
-	ObjectData indexLookupForOne(Class cls, Map<String, Object> keyValues);
-	ObjectData indexLookupForOne(Class cls, String field, Object value, int dataSourceId);
-	ObjectData indexLookupForOne(Class cls, Map<String, Object> keyValues, int dataSourceId);
+	<T> T indexLookupForOne(Class<T> cls, String field, Object value);
+	<T> T indexLookupForOne(Class<T> cls, Map<String, Object> keyValues);
+	<T> T indexLookupForOne(Class<T> cls, String field, Object value, int dataSourceId);
+	<T> T indexLookupForOne(Class<T> cls, Map<String, Object> keyValues, int dataSourceId);
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, String field, Object value);
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, String field, Object value, int dataSourceId);
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, Map<String, Object> keyValues);
-	ObjectData indexLookupForOne(Class cls, String field, String id, int offset, int size);
+	<T> T indexLookupForOne(Class<T> cls, String field, String id, int offset, int size);
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, String field, String id, int offset, int size);
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, Map<String, Object> keyValues, int offset, int size, int dataSourceId);
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, Map<String, Object> keyValues, int dataSourceId);
@@ -81,7 +73,7 @@ public interface ExtendedDao extends BaseDao {
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, String sql, Map<String, Object> keyValues, int dataSourceId);
 	<Z> Z indexBeanLookupForOne(Class<Z>cls, String sql, Map<String, Object> keyValues);
 	
-	String generateIdForBean(ObjectData bean);
+	String generateIdForBean(Object bean);
 	String generateSameShardId(String id);
 	
 	List<MappedData> mappedLookup(Class pclass, Class sclass, String pid);
@@ -90,10 +82,7 @@ public interface ExtendedDao extends BaseDao {
 	List<String> mappedIdLookup(Class pclass, Class sclass, String pid, int offset, int size);
 	int mappedCountLookup(Class pclass, Class sclass, String pid);
 
-	<T extends ObjectData> List<T> beanLookup(final Class<T> cls, int offset, int size);
-
 	<T> void forEachBean(Class<T>cls, BeanHandler<T> handler);
-	void forEachRawBean(Class cls, BeanHandler<ObjectData> handler);
 	void touchAllBean(Class cls);
 	ClassIndex indexByKeys(Class forClass, Collection<String> keys);
 	ClassIndex indexByKeys(Class forClass, String... keys);

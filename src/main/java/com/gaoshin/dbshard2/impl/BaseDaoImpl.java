@@ -19,6 +19,8 @@ package com.gaoshin.dbshard2.impl;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -44,7 +46,6 @@ import com.gaoshin.dbshard2.ObjectId;
 import com.gaoshin.dbshard2.ShardResolver;
 import com.gaoshin.dbshard2.ShardedDataSource;
 import com.gaoshin.dbshard2.entity.IndexedData;
-import com.gaoshin.dbshard2.entity.ObjectData;
 import common.util.JacksonUtil;
 import common.util.MultiTask;
 import common.util.reflection.ReflectionUtil;
@@ -81,86 +82,134 @@ public class BaseDaoImpl implements BaseDao {
 		return shardedDataSource.getDataSourceByObjectId(id).getDataSourceId();
 	}
 	
-    public int getDataSourceIdForObject(ObjectData od) {
-        if(od.id != null)
-            return getDataSourceIdForObjectId(od.id);
+    public int getDataSourceIdForObject(Object od) {
+        String id = getId(od);
+        if(id != null)
+            return getDataSourceIdForObjectId(id);
         int shardId = shardResolver.getShardId(od);
         return shardedDataSource.getDataSourceByShardId(shardId).getDataSourceId();
     }
 
 	@Override
-	public int create(Class cls, final ObjectData obj) {
-		if(!obj.getClass().equals(ObjectData.class))
-			throw new RuntimeException("Please call createBean method");
-		
-		if(obj.json == null)
-			throw new RuntimeException("json should not be null");
-		final ObjectId oi = new ObjectId(obj.id);
+	public <T> int create(final T obj) {
+        String id = getId(obj);
+		final ObjectId oi = new ObjectId(id);
 		final AtomicInteger ups = new AtomicInteger();
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
-		String sql = "insert into " + cls.getSimpleName() + " (id, created, json) values (?, ?, ?)";
-		logger.debug(sql + "\n" + obj.json);
+		
+        final StringBuilder sql = new StringBuilder();
+        final StringBuilder valuesSql = new StringBuilder();
+        final List<Object> values = new ArrayList<>();
+
+        try {
+            ReflectionUtil.iterateFields(obj.getClass(), obj, new common.util.reflection.FieldFoundCallback() {
+                @Override
+                public void field(Object o, Field field) throws Exception {
+                    if(!Modifier.isStatic(field.getModifiers()) && !Modifier.isTransient(field.getModifiers())) {
+                        if(sql.length() > 0) {
+                            sql.append(", ");
+                            valuesSql.append(",");
+                        }
+                        sql.append(field.getName());
+                        valuesSql.append("?");
+                        Class<?> type = field.getType();
+                        Object fieldValue = field.get(obj);
+                        if(type.isEnum()) {
+                            values.add(fieldValue.toString());
+                        }
+                        else if (String.class.equals(type))
+                            values.add(fieldValue);
+                        else if (ReflectionUtil.isPrimeType(type)) {
+                            values.add(fieldValue);
+                        }
+                        else {
+                            String json = JacksonUtil.obj2Json(fieldValue);
+                            values.add(json);
+                        }
+                    }
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        sql.insert(0, "insert into " + obj.getClass().getSimpleName() + " (");
+        valuesSql.insert(0, " values (");
+		sql.append(")");
+		valuesSql.append(")");
+		
 		JdbcTemplate jt = dataSource.getJdbcTemplate();
-		int res = jt.update(sql, obj.id, obj.created, obj.json);
+		int res = jt.update(sql.toString() + valuesSql.toString(), values.toArray());
 		ups.getAndAdd(res);
 		return ups.get();
 	}
 	
 	@Override
-	public int update(Class cls, final ObjectData obj) {
-		if(obj.json == null)
-			throw new RuntimeException("json should not be null");
-		final ObjectId oi = new ObjectId(obj.id);
+	public int update(final Object obj) {
+        String id = (String) ReflectionUtil.getFieldValue(obj, "id");
+		final ObjectId oi = new ObjectId(id);
 		final AtomicInteger ups = new AtomicInteger();
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
-		String sql = "update " + cls.getSimpleName() + " set created=?, json=? where id=?";
+		
+        final StringBuilder sql = new StringBuilder();
+        final List<Object> values = new ArrayList<>();
+
+        try {
+            ReflectionUtil.iterateFields(obj.getClass(), obj, new common.util.reflection.FieldFoundCallback() {
+                @Override
+                public void field(Object o, Field field) throws Exception {
+                    if(!Modifier.isStatic(field.getModifiers()) && !Modifier.isTransient(field.getModifiers())) {
+                        if(sql.length() > 0) {
+                            sql.append(", ");
+                        }
+                        sql.append(field.getName()).append("=?");
+                        
+                        Class<?> type = field.getType();
+                        Object fieldValue = field.get(obj);
+                        if(type.isEnum()) {
+                            values.add(fieldValue.toString());
+                        }
+                        else if (String.class.equals(type))
+                            values.add(fieldValue);
+                        else if (ReflectionUtil.isPrimeType(type)) {
+                            values.add(fieldValue);
+                        }
+                        else {
+                            String json = JacksonUtil.obj2Json(fieldValue);
+                            values.add(json);
+                        }
+                    }
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        sql.insert(0, "update " + obj.getClass().getSimpleName() + " set ");
+        sql.append(" where id=?");
+        values.add(id);
+        
 		JdbcTemplate jt = dataSource.getJdbcTemplate();
-		int res = jt.update(sql, obj.created, obj.json, obj.id);
-		logger.debug("update " + obj.id + " with json " + obj.json);
+		int res = jt.update(sql.toString(), values.toArray());
 		ups.getAndAdd(res);
 		return ups.get();
 	}
 
 	@Override
-	public ObjectData objectLookup(Class cls, String id) {
-		ObjectData data = null;
+	public <T> T objectLookup(Class<T> cls, String id) {
+		T data = null;
 		if(id != null){
 				ObjectId oi = new ObjectId(id);
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
 				String sql = "select * from " + cls.getSimpleName() + " where id=?";
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
-				List<ObjectData> od = jt.query(sql, new Object[]{id}, new ObjectDataRowMapper());
+				List<T> od = jt.query(sql, new Object[]{id}, new ReflectionRowMapper(cls));
 				
 				data = od.size() > 0 ? od.get(0) : null;
 		}
 		return data;
 	}
 	
-	@Override
-	public List<ObjectData> sqlLookup(final String sql) {
-		final List<ObjectData> result = new ArrayList<>();
-		forEachDataSource(new ShardRunnable() {
-					@Override
-					public void run(int dataSourceId) {
-						ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
-						NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
-						List<ObjectData> data = namedjc.query(sql, new ObjectDataRowMapper());
-						synchronized (result) {
-							result.addAll(data);
-						}
-					}
-				});
-		return result;
-	}
-
-	@Override
-	public List<ObjectData> sqlLookup(final String sql, int dataSourceId) {
-		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
-		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
-		List<ObjectData> data = namedjc.query(sql, new ObjectDataRowMapper());
-		return data;
-	}
-
 	@Override
 	public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(int dataSourceId) {
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
@@ -176,42 +225,43 @@ public class BaseDaoImpl implements BaseDao {
 	}
 
 	@Override
-	public List<ObjectData> objectLookup(Class cls, Collection<String> ids) {
-		HashMap<String, ObjectData> map = new HashMap<String, ObjectData>();
-		List<ObjectData> result = new ArrayList<>();
+	public <T> List<T> objectLookup(final Class<T> cls, List<String> ids) {
+		HashMap<String, T> map = new HashMap<String, T>();
+		List<T> result = new ArrayList<>();
 		if(ids == null || ids.size()==0){
 			return result;
 		}
-		List<String> spilledIdList = new ArrayList<>(ids);
-		if(spilledIdList.size() > 0){
-			ObjectId oi = new ObjectId(spilledIdList.get(0));
-			final String sql = "select * from " + cls.getSimpleName() + " where id in (:ids)";
-			final Map<Integer, List<String>> shardedIds = shardedDataSource.splitByDataSource(spilledIdList);
-			final List<ObjectData> spilledResults = new ArrayList<>();
-			
-			forSelectDataSources(shardedIds.keySet(),new ShardRunnable() {
-				@Override
-				public void run(int dataSourceId) {
-					ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
-					NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
-					List<ObjectData> data = namedjc.query(sql, Collections.singletonMap("ids", shardedIds.get(dataSourceId)), new ObjectDataRowMapper());
-					synchronized (spilledResults) {
-						spilledResults.addAll(data);
-					}
-				}
-			});
 
-			HashMap<String,Object> spilledMap = new HashMap<>();
-			for (ObjectData objectData : spilledResults) {
-				spilledMap.put(objectData.id, objectData);
-				spilledIdList.remove(objectData.id);
-				map.put(objectData.id, objectData);
-			}
-
-		}
+		final String sql = "select * from " + cls.getSimpleName() + " where id in (:ids)";
+		final Map<Integer, List<String>> shardedIds = shardedDataSource.splitByDataSource(ids);
+		final List<T> spilledResults = new ArrayList<>();
 		
+		forSelectDataSources(shardedIds.keySet(),new ShardRunnable() {
+			@Override
+			public void run(int dataSourceId) {
+				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
+				NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
+				List<T> data = namedjc.query(sql, Collections.singletonMap("ids", shardedIds.get(dataSourceId)), new ReflectionRowMapper(cls));
+				synchronized (spilledResults) {
+					spilledResults.addAll(data);
+				}
+			}
+		});
+
+		HashMap<String,Object> spilledMap = new HashMap<>();
+		for (T objectData : spilledResults) {
+		    String id;
+            try {
+                id = (String) ReflectionUtil.getFieldValue(objectData, "id");
+                spilledMap.put(id, objectData);
+                map.put(id, objectData);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+		}
+
 		for(String id : ids) {
-			ObjectData data = map.get(id);
+			T data = map.get(id);
 			if(data != null)
 				result.add(data);
 		}
@@ -510,44 +560,13 @@ public class BaseDaoImpl implements BaseDao {
 	    }
 	}
 	
-	static class ObjectDataRowMapper<T extends ObjectData> implements RowMapper<T>{
-		private Class cls = null;
-		public ObjectDataRowMapper() {
-			try {
-				if(this.getClass().equals(ObjectDataRowMapper.class))
-					cls = ObjectData.class;
-				else
-					cls = ReflectionUtil.getParameterizedType(this.getClass());
-			} catch (Exception e) {
-			}
-		}
-		
-		public ObjectDataRowMapper(Class cls) {
-			this.cls = cls;
-		}
-		
-		@Override
-		public T mapRow(ResultSet arg0, int arg1)
-				throws SQLException {
-			try {
-				T row = (T) cls.newInstance();
-				row.id = arg0.getString("id");
-				row.created = arg0.getLong("created");
-				row.json = arg0.getString("json");
-				return row;
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
-	
 	@Override
-	public <T extends ObjectData> List<T> objectLookup(final Class<T> cls) {
+	public <T> List<T> objectLookup(final Class<T> cls) {
 		return objectLookup(cls, -1, -1);
 	}
 	
 	@Override
-	public <T extends ObjectData> List<T> objectLookup(final Class<T> cls, int offset, int size) {
+	public <T> List<T> objectLookup(final Class<T> cls, int offset, int size) {
 		final Map<String, Object> keyValues = new HashMap<String, Object>();
 		final StringBuilder sb = new StringBuilder();
 		sb.append("select * from ").append(cls.getSimpleName());
@@ -575,7 +594,7 @@ public class BaseDaoImpl implements BaseDao {
 			public void run(int dataSourceId) {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				NamedParameterJdbcTemplate jc = dataSource.getNamedParameterJdbcTemplate();
-				List<T> dsResults = jc.query(sb.toString(), keyValues, new ObjectDataRowMapper(cls));
+				List<T> dsResults = jc.query(sb.toString(), keyValues, new ReflectionRowMapper(cls));
 				synchronized (results) {
 					results.addAll(dsResults);
 				}
@@ -586,38 +605,28 @@ public class BaseDaoImpl implements BaseDao {
 	
 	@Override
 	public void dumpTable(final OutputStream output, final String tableName, final String fields) {
-		final String[] names = fields == null ? null : fields.split(",");;
 		forEachDataSourceOneByOne(new ShardRunnable() {
 			@Override
 			public void run(int dataSourceId) {
-				String sql = "select json from " + tableName.replaceAll(" ", "");
+				String sql = "select * from " + tableName.replaceAll(" ", "");
+				if(fields != null && fields.trim().length()>0)
+				    sql = "select " + fields + " from " + tableName.replaceAll(" ", "");
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				JdbcTemplate jc = dataSource.getJdbcTemplate();
 				jc.query(sql, new RowCallbackHandler(){
 					@Override
 					public void processRow(ResultSet rs) throws SQLException {
 						try {
-							String json = rs.getString(1);
-							if(names == null)
-								output.write(json.getBytes());
-							else {
-								HashMap<String, Object> map = JacksonUtil.json2map(json);
-								boolean first = true;
-								for(String name : names) {
-									if(first) {
-										first = false;
-									}
-									else {
-										output.write('\t');
-									}
-									Object obj = map.get(name);
-									if(obj == null)
-										output.write("NULL".getBytes());
-									else
-										output.write(obj.toString().getBytes());
-								}
-							}
-							output.write('\n');
+						    int columnCount = rs.getMetaData().getColumnCount();
+						    for(int i=1; i<=columnCount; i++) {
+						        String value = rs.getString(i);
+						        if(i>1)
+                                    output.write('\t');
+						        if(value == null)
+						            value = "NULL";
+						        output.write(value.getBytes());
+						    }
+                            output.write('\n');
 						} catch (IOException e) {
 							throw new SQLException(e);
 						}
@@ -627,7 +636,7 @@ public class BaseDaoImpl implements BaseDao {
 	}
 	
 	@Override
-	public <T> List<T> indexQuery(int dataSourceId, String sql,
+	public <T> List<T> query(int dataSourceId, String sql,
 			Map<String, Object> params, RowMapper<T> rowMapper) {
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 		NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
@@ -635,7 +644,7 @@ public class BaseDaoImpl implements BaseDao {
 	}
 	
 	@Override
-	public <T> List<T> indexQuery(final String sql, final Map<String, Object> params,
+	public <T> List<T> query(final String sql, final Map<String, Object> params,
 			final RowMapper<T> rowMapper) {
 		final List<T> result = new ArrayList<T>();
 		forEachDataSource(new ShardRunnable() {
@@ -653,7 +662,7 @@ public class BaseDaoImpl implements BaseDao {
 	}
 	
 	@Override
-	public <T> List<T> indexQuery(final String sql, final RowMapper<T> rowMapper) {
+	public <T> List<T> query(final String sql, final RowMapper<T> rowMapper) {
 		final List<T> result = new ArrayList<T>();
 		forEachDataSource(new ShardRunnable() {
 			@Override
@@ -668,6 +677,14 @@ public class BaseDaoImpl implements BaseDao {
 		});
 		return result;
 	}
+    
+    public static String getId(Object o) {
+        return (String) ReflectionUtil.getFieldValue(o, "id");
+    }
+    
+    public static Long getCreated(Object o) {
+        return (Long) ReflectionUtil.getFieldValue(o, "created");
+    }
 
 }
 

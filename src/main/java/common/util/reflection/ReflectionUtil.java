@@ -576,6 +576,14 @@ public class ReflectionUtil {
         return isPrimeType(item.getClass());
     }
 
+    public static void setFieldValue(Object target, String field, Object value) {
+        try {
+            setFieldValue(target, target.getClass().getField(field), value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void setFieldValue(Object target, Field field, Object value) {
         try {
             field.setAccessible(true);
@@ -609,10 +617,14 @@ public class ReflectionUtil {
         return primeObject.toString();
     }
 
-    public static Object getFieldValue(Object obj, String fieldName) throws Exception {
-        Field field = getField(obj.getClass(), fieldName);
-        field.setAccessible(true);
-        return field.get(obj);
+    public static Object getFieldValue(Object obj, String fieldName) {
+        try {
+            Field field = getField(obj.getClass(), fieldName);
+            field.setAccessible(true);
+            return field.get(obj);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
     
 	public static List getFieldValues(List objs, String fieldName) {
