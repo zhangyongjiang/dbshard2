@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import common.util.JacksonUtil;
+
 public class ReflectionUtil {
     public static <T> T copy(Class<T> clazz, Object from) {
         return copy(clazz, from, false);
@@ -561,7 +563,9 @@ public class ReflectionUtil {
                     return e;
             }
         }
-        throw new Exception("Unhandled data type: " + toType);
+        
+        Object instance = JacksonUtil.json2Object(value, toType);
+        return instance;
     }
 
     public static SimpleDateFormat getIso8601DateFormat() {
