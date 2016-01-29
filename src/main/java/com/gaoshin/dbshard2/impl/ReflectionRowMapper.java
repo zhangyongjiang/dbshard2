@@ -31,7 +31,7 @@ public class ReflectionRowMapper<T> implements RowMapper<T> {
                 Field field = cls.getField(label);
                 field.setAccessible(true);
                 String str = rs.getString(i);
-                Object value = ReflectionUtil.convert(str, field.getType());
+                Object value = ReflectionUtil.convert(str, field);
                 field.set(t, value);
             }
             return t;

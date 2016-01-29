@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import common.util.JacksonUtil;
 
 public class ReflectionUtil {
@@ -505,6 +506,14 @@ public class ReflectionUtil {
     }
 
     public static Object convert(String value, Class toType) throws Exception {
+        return convert(value, toType, null);
+    }
+
+    public static Object convert(String value, Field field) throws Exception {
+        return convert(value, field.getType(), getFieldGenericType(field));
+    }
+
+    public static Object convert(String value, Class toType, final Class genericType) throws Exception {
         if (value == null) {
             return null;
         }
@@ -562,6 +571,16 @@ public class ReflectionUtil {
                 if (e.toString().equals(value))
                     return e;
             }
+        }
+        if(List.class.isAssignableFrom(toType)) {
+            TypeReference<List> tf = new TypeReference<List>() {
+                @Override
+                public Type getType() {
+                    return genericType;
+                }
+            };
+            Object instance = JacksonUtil.getObjectMapper().readValue(value, tf);
+            return instance;
         }
         
         Object instance = JacksonUtil.json2Object(value, toType);
