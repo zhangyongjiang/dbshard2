@@ -47,7 +47,11 @@ public class ClassTable {
 	
 	public ClassMapping getClassMapping(Class cls) {
 		Mapping mapping = getMapping(cls);
-		return new ClassMapping(forcls, mapping);
+		String column = mapping.column();
+		Class map2Cls = mapping.map2cls();
+		String[] otherColumns = mapping.otherColumns();
+		ClassMapping cm = new ClassMapping(forcls, column, map2Cls, otherColumns);
+		return cm;
 	}
 
 	public ShardedTable getAnnotation() {

@@ -140,7 +140,10 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			Class primaryCls = mapping.map2cls();
 			ExtendedDao dao = getDaoForClass(primaryCls);
 			
-			ClassMapping cm = new ClassMapping(obj.getClass(), mapping);
+			String column = mapping.column();
+			Class map2Cls = mapping.map2cls();
+			String[] otherColumns = mapping.otherColumns();
+			ClassMapping cm = new ClassMapping(obj.getClass(), column, map2Cls, otherColumns);
 			String table = cm.getTableName();
 			StringBuilder sql = new StringBuilder().append("insert into ").append(table).append(" (pid, sid, created");
 			for(String s : mapping.otherColumns()) {
@@ -314,7 +317,10 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	protected int removeMappingsForBean(Object obj){
 		int ret = 0;
 		for(Mapping mapping : getTableForBean(obj).mappings()) {
-			ClassMapping cm = new ClassMapping(obj.getClass(), mapping);
+			String column = mapping.column();
+			Class map2Cls = mapping.map2cls();
+			String[] otherColumns = mapping.otherColumns();
+			ClassMapping cm = new ClassMapping(obj.getClass(), column, map2Cls, otherColumns);
 			String table = cm.getTableName();
 			List<Object> list = new ArrayList();
 			getValues(obj, mapping.column(), list);

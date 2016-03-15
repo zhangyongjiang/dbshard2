@@ -18,17 +18,21 @@
 package com.gaoshin.dbshard2;
 
 public class ClassMapping {
-	public Mapping mapping;
 	public Class forClass;
+	public String column;
+	public Class map2cls;
+	public String[] otherColumns;
 	
 	private String tableName;
 	
 	public ClassMapping() {
 	}
 	
-	public ClassMapping(Class forClass, Mapping mapping) {
+	public ClassMapping(Class forClass, String column, Class map2Cls, String[] otherColumns) {
 		this.forClass = forClass;
-		this.mapping = mapping;
+		this.column = column;
+		this.map2cls = map2Cls;
+		this.otherColumns = otherColumns;
 	}
 	
 	public String getTableName() {
@@ -37,7 +41,7 @@ public class ClassMapping {
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append("m_");
-		sb.append(mapping.map2cls().getSimpleName());
+		sb.append(map2cls.getSimpleName());
 		sb.append("_");
 		sb.append(forClass.getSimpleName());
 		tableName = sb.toString();

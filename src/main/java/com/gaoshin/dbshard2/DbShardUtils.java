@@ -96,7 +96,10 @@ public class DbShardUtils {
 		}
 		
 		for(Mapping mapping : tableDefinition.mappings()) {
-			ClassMapping cm = new ClassMapping(beanCls, mapping);
+			String column = mapping.column();
+			Class map2Cls = mapping.map2cls();
+			String[] otherColumns = mapping.otherColumns();
+			ClassMapping cm = new ClassMapping(beanCls, column, map2Cls, otherColumns);
 			StringBuilder table = new StringBuilder();
 			table.append("create table if not exists ").append(cm.getTableName()).append("(pid varchar(64), sid varchar(64), created bigint");
 			for(String c : mapping.otherColumns()) {
