@@ -20,7 +20,7 @@ package com.gaoshin.dbshard2.impl;
 import com.gaoshin.dbshard2.ShardResolver;
 
 public class FixedShardResolver<T> implements ShardResolver<T> {
-	private int numberOfShards;
+	private int numberOfShards = 1;
 	
 	@Override
 	public int getNumberOfShards() {

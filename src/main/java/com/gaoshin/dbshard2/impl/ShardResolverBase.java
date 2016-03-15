@@ -23,9 +23,9 @@ import com.gaoshin.dbshard2.ShardResolver;
 
 public class ShardResolverBase<T> implements ShardResolver<T> {
 	private Random random;
-	private int minShardId4Write;
-	private int maxShardId4Write;
-	private int numberOfShards;
+	private int minShardId4Write = 0;
+	private int maxShardId4Write = 1;
+	private int numberOfShards = 1;
 
 	public ShardResolverBase() {
 		random = new Random();
