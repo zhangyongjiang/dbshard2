@@ -18,16 +18,20 @@
 package com.gaoshin.dbshard2;
 
 public class ClassIndex {
-	public Index index;
 	public Class forClass;
+	public String[] columns;
+	public boolean unique;
+	
 	private String tableName;
 	
-	public ClassIndex() {
+	public ClassIndex(Class forClass, String[] columns) {
+		this(forClass, columns, false);
 	}
 	
-	public ClassIndex(Class forClass, Index index) {
+	public ClassIndex(Class forClass, String[] columns, boolean unique) {
 		this.forClass = forClass;
-		this.index = index;
+		this.columns = columns;
+		this.unique = unique;
 	}
 	
 	public String getTableName() {
@@ -37,7 +41,7 @@ public class ClassIndex {
 		StringBuilder sb = new StringBuilder();
 		sb.append("i_");
 		sb.append(forClass.getSimpleName());
-		for(String column : index.value()) {
+		for(String column : columns) {
 			sb.append("_");
 			String columnName = new ColumnPath(column).getColumnName();
 			sb.append(columnName);

@@ -45,6 +45,7 @@ import com.gaoshin.dbshard2.ExtendedDataSource;
 import com.gaoshin.dbshard2.ObjectId;
 import com.gaoshin.dbshard2.ShardResolver;
 import com.gaoshin.dbshard2.ShardedDataSource;
+import com.gaoshin.dbshard2.TableManager;
 import com.gaoshin.dbshard2.entity.IndexedData;
 import common.util.JacksonUtil;
 import common.util.MultiTask;
@@ -57,6 +58,7 @@ public class BaseDaoImpl implements BaseDao {
 	protected ShardResolver shardResolver;
 	protected ShardedDataSource shardedDataSource;
 	protected ExecutorService executorService;
+	protected TableManager tableManager;
 	
 	public ShardResolver getShardResolver() {
 		return shardResolver;

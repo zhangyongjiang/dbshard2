@@ -44,10 +44,7 @@ import com.gaoshin.dbshard2.DaoManager;
 import com.gaoshin.dbshard2.DbShardUtils;
 import com.gaoshin.dbshard2.ExtendedDao;
 import com.gaoshin.dbshard2.ExtendedDataSource;
-import com.gaoshin.dbshard2.Index;
-import com.gaoshin.dbshard2.Mapping;
 import com.gaoshin.dbshard2.ObjectId;
-import com.gaoshin.dbshard2.ShardedTable;
 import com.gaoshin.dbshard2.TimeRange;
 import com.gaoshin.dbshard2.entity.IndexedData;
 import com.gaoshin.dbshard2.entity.MappedData;
@@ -126,8 +123,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	protected int addIndexesForBean(Object obj){
 		int ret = 0;
-		ShardedTable annotation = obj.getClass().getAnnotation(ShardedTable.class);
-		for(Index index : annotation.indexes()) {
+		for(ClassIndex index : getTableForBean(obj).getIndexes()) {
 			ret += addIndexForBean(index, obj);
 		}
 		return ret;
@@ -135,30 +131,30 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	protected int addMappingsForBean(Object obj){
 		int ret = 0;
-		ShardedTable annotation = obj.getClass().getAnnotation(ShardedTable.class);
-		for(Mapping mapping : annotation.mappings()) {
-			Class primaryCls = mapping.map2cls();
+		ClassMapping[] mappings = getTableForBean(obj).getMappings();
+		if(mappings == null) 
+			return 0;
+		
+		for(ClassMapping mapping : mappings) {
+			Class primaryCls = mapping.map2cls;
 			ExtendedDao dao = getDaoForClass(primaryCls);
 			
-			String column = mapping.column();
-			Class map2Cls = mapping.map2cls();
-			String[] otherColumns = mapping.otherColumns();
-			ClassMapping cm = new ClassMapping(obj.getClass(), column, map2Cls, otherColumns);
-			String table = cm.getTableName();
+			String table = mapping.getTableName();
 			StringBuilder sql = new StringBuilder().append("insert into ").append(table).append(" (pid, sid, created");
-			for(String s : mapping.otherColumns()) {
+			for(String s : mapping.otherColumns) {
 				String columnName = new ColumnPath(s).getColumnName();
 				sql.append(",").append(columnName);
 			}
 			sql.append(")").append(" values (?, ?, ?");
-			for(String s : mapping.otherColumns()) {
+			for(String s : mapping.otherColumns) {
 				sql.append(", ?");
 			}
 			sql.append(")");
 
-			Object[] values = new Object[mapping.otherColumns().length + 3];
+			int size = mapping.otherColumns == null ? 3 : mapping.otherColumns.length + 3;
+			Object[] values = new Object[size];
 			try {
-				values[0] = ReflectionUtil.getFieldValue(obj, mapping.column());
+				values[0] = ReflectionUtil.getFieldValue(obj, mapping.column);
 				if(values[0] == null)
 					continue;
 			} catch (Exception e) {
@@ -167,11 +163,14 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			values[1] = getId(obj);
 			values[2] = getCreated(obj);
 			
-			for(int i = 0; i< mapping.otherColumns().length; i++) {
-				try {
-					values[i+3] = ReflectionUtil.getFieldValue(obj, mapping.otherColumns()[i]);
-				} catch (Exception e) {
-					throw new RuntimeException(e);
+			
+			if(mapping.otherColumns != null) {
+				for(int i = 0; i< mapping.otherColumns.length; i++) {
+					try {
+						values[i+3] = ReflectionUtil.getFieldValue(obj, mapping.otherColumns[i]);
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
 				}
 			}
 
@@ -186,10 +185,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		return DaoManager.getInstance().get(cls);
 	}
 	
-	protected int addIndexForBean(Index index, Object obj){
-		ClassIndex ti = new ClassIndex(obj.getClass(), index);
+	protected int addIndexForBean(ClassIndex ti, Object obj){
 		List<ColumnValues> columnValues = new ArrayList<ColumnValues>();
-		for(String indexColumnName : index.value()) {
+		for(String indexColumnName : ti.columns) {
 			try {
 				List<Object> list = new ArrayList();
 				getValues(obj, indexColumnName, list);
@@ -275,17 +273,14 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		}
 	}
 	
-	public static ShardedTable getTableForBean(Object obj) {
-		return obj.getClass().getAnnotation(ShardedTable.class);
+	public ClassTable getTableForBean(Object obj) {
+		return tableManager.getTable(obj.getClass());
 	}
 	
 	protected int removeIndexesForBean(Object obj){
 		int ret = 0;
-		for(Index index : getTableForBean(obj).indexes()) {
-			ClassIndex ti = new ClassIndex();
-			ti.index = index;
-			ti.forClass = obj.getClass();
-			deleteIndexData(ti, (String)ReflectionUtil.getFieldValue(obj, "id"));
+		for(ClassIndex index : getTableForBean(obj).getIndexes()) {
+			deleteIndexData(index, (String)ReflectionUtil.getFieldValue(obj, "id"));
 		}
 		return ret;
 	}
@@ -316,16 +311,12 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	protected int removeMappingsForBean(Object obj){
 		int ret = 0;
-		for(Mapping mapping : getTableForBean(obj).mappings()) {
-			String column = mapping.column();
-			Class map2Cls = mapping.map2cls();
-			String[] otherColumns = mapping.otherColumns();
-			ClassMapping cm = new ClassMapping(obj.getClass(), column, map2Cls, otherColumns);
-			String table = cm.getTableName();
+		for(ClassMapping mapping : getTableForBean(obj).getMappings()) {
+			String table = mapping.getTableName();
 			List<Object> list = new ArrayList();
-			getValues(obj, mapping.column(), list);
+			getValues(obj, mapping.column, list);
 			for(Object sid : list) {
-				ExtendedDao dao = getDaoForClass(mapping.map2cls());
+				ExtendedDao dao = getDaoForClass(mapping.map2cls);
 				ExtendedDataSource dataSource = dao.getShardedDataSource().getDataSourceByObjectId((String)sid);
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
 				String sql = "delete from " + table + " where sid='" + ReflectionUtil.getFieldValue(obj, "id") + "'";
@@ -437,19 +428,18 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	@Override
 	public ClassIndex indexByKeys(Class forClass, Collection<String>keys) {
-		ClassIndex ti = new ClassIndex();
-		ti.forClass = forClass;
-		ShardedTable annotation = (ShardedTable) forClass.getAnnotation(ShardedTable.class);
+		ClassIndex ti = null;
+		ClassTable table = tableManager.getTable(forClass);
 		int maxMatched = 0;
-		for(Index i : annotation.indexes()) {
+		for(ClassIndex ci : table.getIndexes()) {
 			int matched = 0;
-			for(String s : i.value()) {
+			for(String s : ci.columns) {
 				if(keys.contains(s)) {
 					matched++;
 				}
 			}
 			if(matched>maxMatched) {
-				ti.index = i;
+				ti = ci;
 				maxMatched = matched;
 			}
 		}
@@ -463,7 +453,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		List<String> sqls = new ArrayList<String>();
 		for(Class cls : forClasses) {
 		    System.out.println("get sql for class " + cls);
-			for(String sql : DbShardUtils.getSqls(cls)) {
+			for(String sql : DbShardUtils.getSqls(tableManager.getTable(cls))) {
 				if(!sqls.contains(sql)) {
 		            System.out.println(sql);
 					sqls.add(sql);
@@ -486,7 +476,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 
 	@Override
 	public List<MappedData> mappedLookup(Class pclass, Class sclass, String pid) {
-		ClassTable ct = new ClassTable(sclass);
+		ClassTable ct = tableManager.getTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
 		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select * from " + cm.getTableName() + " where pid = :pid";
@@ -497,7 +487,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	@Override
 	public int mappedCountLookup(Class pclass, Class sclass, String pid) {
-		ClassTable ct = new ClassTable(sclass);
+		ClassTable ct = tableManager.getTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
 		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select count(*) from " + cm.getTableName() + " where pid = :pid";
@@ -508,7 +498,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	@Override
 	public List<MappedData> mappedLookup(Class pclass, Class sclass, String pid, int offset, int size) {
-		ClassTable ct = new ClassTable(sclass);
+		ClassTable ct = tableManager.getTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
 		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select * from " + cm.getTableName() + " where pid = :pid order by created desc limit " + offset + "," + size;

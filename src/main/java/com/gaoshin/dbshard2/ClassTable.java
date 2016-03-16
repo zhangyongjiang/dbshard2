@@ -18,47 +18,34 @@
 package com.gaoshin.dbshard2;
 
 public class ClassTable {
-	private ShardedTable annotation;
 	private Class forcls;
-	
-	public ClassTable() {
-	}
-	
-	public ClassTable(Class forcls) {
-		setForcls(forcls);
-	}
+	private ClassIndex[] indexes;
+	private ClassMapping[] mappings;
 	
 	public Class getForcls() {
 		return forcls;
 	}
 	
-	public void setForcls(Class forcls) {
+	public void ClassTable(Class forcls, ClassIndex[] indexes, ClassMapping[] mappings) {
 		this.forcls = forcls;
-		setAnnotation((ShardedTable) forcls.getAnnotation(ShardedTable.class));
+		this.indexes = indexes;
+		this.mappings = mappings;
 	}
 	
-	public Mapping getMapping(Class cls) {
-		for(Mapping mapping : getAnnotation().mappings()) {
-			if(mapping.map2cls().equals(cls))
+	public ClassMapping getClassMapping(Class cls) {
+		for(ClassMapping mapping : getMappings()) {
+			if(mapping.map2cls.equals(cls))
 				return mapping;
 		}
 		throw new RuntimeException(forcls.getSimpleName() + " has no mapping for " + cls);
 	}
-	
-	public ClassMapping getClassMapping(Class cls) {
-		Mapping mapping = getMapping(cls);
-		String column = mapping.column();
-		Class map2Cls = mapping.map2cls();
-		String[] otherColumns = mapping.otherColumns();
-		ClassMapping cm = new ClassMapping(forcls, column, map2Cls, otherColumns);
-		return cm;
+
+	public ClassIndex[] getIndexes() {
+		return indexes;
 	}
 
-	public ShardedTable getAnnotation() {
-		return annotation;
+	public ClassMapping[] getMappings() {
+		return mappings;
 	}
 
-	public void setAnnotation(ShardedTable annotation) {
-		this.annotation = annotation;
-	}
 }

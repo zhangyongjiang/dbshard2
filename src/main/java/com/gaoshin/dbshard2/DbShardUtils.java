@@ -34,12 +34,9 @@ import common.util.reflection.AnnotatedFieldCallback;
 import common.util.reflection.ReflectionUtil;
 
 public class DbShardUtils {
-	public static List<String> getSqls(final Class<?> beanCls) {
+	public static List<String> getSqls(final ClassTable classTable) {
 		List<String> sqls = new ArrayList<String>();
-		ShardedTable tableDefinition = (ShardedTable)beanCls.getAnnotation(ShardedTable.class);
-		if(tableDefinition == null)
-			return sqls;
-		
+		final Class<?> beanCls = classTable.getForcls();
 		final StringBuilder sbb = new StringBuilder( "create table if not exists " + beanCls.getSimpleName() + " (id varchar(64) primary key, created bigint, updated bigint, version integer, json text");
 		try {
 			ReflectionUtil.iterateAnnotatedFields(beanCls.newInstance(), Column.class, new AnnotatedFieldCallback() {
@@ -57,16 +54,13 @@ public class DbShardUtils {
 		sbb.append(")");
 		sqls.add(sbb.toString());
 		
-		for(Index index : tableDefinition.indexes()) {
-			ClassIndex ti = new ClassIndex();
-			ti.forClass = beanCls;
-			ti.index = index;
-			String[] columns = index.value();
-			String tableName = ti.getTableName();
+		for(ClassIndex index : classTable.getIndexes()) {
+			String[] columns = index.columns;
+			String tableName = index.getTableName();
 			StringBuilder sb = new StringBuilder();
 			StringBuilder indexTable = new StringBuilder();
 			sb.append("create table if not exists ").append(tableName).append("(id varchar(64)");
-			indexTable.append("alter table ").append(tableName).append(" add ").append(index.unique() ? " unique " : "").append(" index i").append(tableName).append("(");
+			indexTable.append("alter table ").append(tableName).append(" add ").append(index.unique ? " unique " : "").append(" index i").append(tableName).append("(");
 			boolean first = true;
 			boolean hasCreated = false;
 			for(String c : columns) {
@@ -95,14 +89,10 @@ public class DbShardUtils {
             sqls.add("alter table " + tableName + " add index idindex (id)");
 		}
 		
-		for(Mapping mapping : tableDefinition.mappings()) {
-			String column = mapping.column();
-			Class map2Cls = mapping.map2cls();
-			String[] otherColumns = mapping.otherColumns();
-			ClassMapping cm = new ClassMapping(beanCls, column, map2Cls, otherColumns);
+		for(ClassMapping mapping : classTable.getMappings()) {
 			StringBuilder table = new StringBuilder();
-			table.append("create table if not exists ").append(cm.getTableName()).append("(pid varchar(64), sid varchar(64), created bigint");
-			for(String c : mapping.otherColumns()) {
+			table.append("create table if not exists ").append(mapping.getTableName()).append("(pid varchar(64), sid varchar(64), created bigint");
+			for(String c : mapping.otherColumns) {
 				ColumnPath cp = new ColumnPath(c);
 				String columnName = cp.getColumnName();
 				if("created".equals(columnName))
@@ -112,8 +102,8 @@ public class DbShardUtils {
 			}
 			table.append(")");
 			sqls.add(table.toString());
-            sqls.add("alter table " + cm.getTableName() + " add index sidindex (sid)");
-            sqls.add("alter table " + cm.getTableName() + " add index pidindex (pid)");
+            sqls.add("alter table " + mapping.getTableName() + " add index sidindex (sid)");
+            sqls.add("alter table " + mapping.getTableName() + " add index pidindex (pid)");
 		}
 		
 		return sqls;
