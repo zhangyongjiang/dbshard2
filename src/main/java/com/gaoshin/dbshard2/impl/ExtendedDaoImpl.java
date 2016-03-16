@@ -95,7 +95,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		}
 		
 		Long created = getCreated(obj);
-		if(created == null) {
+		if(created == null || created == 0) {
 		    created = DateUtil.currentTimeMillis();
             ReflectionUtil.setFieldValue(obj, "created", created);
 		}
@@ -123,8 +123,11 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
     }
 	
 	protected int addIndexesForBean(Object obj){
+		ClassIndex[] indexes = getTableForBean(obj).getIndexes();
+		if(indexes == null)
+			return 0;
 		int ret = 0;
-		for(ClassIndex index : getTableForBean(obj).getIndexes()) {
+		for(ClassIndex index : indexes) {
 			ret += addIndexForBean(index, obj);
 		}
 		return ret;

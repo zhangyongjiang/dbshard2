@@ -17,27 +17,32 @@
 
 package com.gaoshin.dbshard2;
 
+import java.util.HashMap;
+
 public class ClassTable {
 	private Class forcls;
 	private ClassIndex[] indexes;
 	private ClassMapping[] mappings;
-	
+	private HashMap<DbDialet, String> tableCreateSqls = new HashMap<>();
+
 	public Class getForcls() {
 		return forcls;
 	}
-	
-	public ClassTable(Class forcls, ClassIndex[] indexes, ClassMapping[] mappings) {
+
+	public ClassTable(Class forcls, ClassIndex[] indexes,
+			ClassMapping[] mappings) {
 		this.forcls = forcls;
 		this.indexes = indexes;
 		this.mappings = mappings;
 	}
-	
+
 	public ClassMapping getClassMapping(Class cls) {
-		for(ClassMapping mapping : getMappings()) {
-			if(mapping.map2cls.equals(cls))
+		for (ClassMapping mapping : getMappings()) {
+			if (mapping.map2cls.equals(cls))
 				return mapping;
 		}
-		throw new RuntimeException(forcls.getSimpleName() + " has no mapping for " + cls);
+		throw new RuntimeException(forcls.getSimpleName()
+				+ " has no mapping for " + cls);
 	}
 
 	public ClassIndex[] getIndexes() {
@@ -46,6 +51,19 @@ public class ClassTable {
 
 	public ClassMapping[] getMappings() {
 		return mappings;
+	}
+
+	public ClassTable addCreateSql(DbDialet dialet, String sql) {
+		synchronized (tableCreateSqls) {
+			tableCreateSqls.put(dialet, sql);
+			return this;
+		}
+	}
+
+	public String getCreateSql(DbDialet dialet) {
+		synchronized (tableCreateSqls) {
+			return tableCreateSqls.get(dialet);
+		}
 	}
 
 }

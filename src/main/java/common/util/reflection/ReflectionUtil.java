@@ -287,7 +287,10 @@ public class ReflectionUtil {
     }
 
     public static Class getFieldGenericType(Field f) throws Exception {
-        ParameterizedType gt = (ParameterizedType) f.getGenericType();
+        Type genericType = f.getGenericType();
+        if(!(genericType instanceof ParameterizedType))
+        	return null;
+		ParameterizedType gt = (ParameterizedType) genericType;
         return (Class) gt.getActualTypeArguments()[0];
     }
 
