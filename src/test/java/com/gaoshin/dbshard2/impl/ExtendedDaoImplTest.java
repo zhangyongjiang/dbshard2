@@ -1,5 +1,6 @@
 package com.gaoshin.dbshard2.impl;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -10,6 +11,7 @@ import org.junit.Test;
 
 import com.gaoshin.dbshard2.H2InMemoryShardedDataSource;
 import com.gaoshin.dbshard2.ObjectId;
+import com.gaoshin.dbshard2.RequestContext;
 import com.gaoshin.dbshard2.ShardResolver;
 import com.gaoshin.dbshard2.ShardedDataSource;
 import com.gaoshin.dbshard2.TableManager;
@@ -94,4 +96,53 @@ public class ExtendedDaoImplTest {
 		});
 		Assert.assertEquals(0, map.size());
 	}
+	
+	@Test
+	public void testTransaction() throws SQLException {
+		RequestContext rc = new RequestContext();
+		RequestContext.setRequestContext(rc);
+		
+		ExtendedDaoImpl dao = new ExtendedDaoImpl();
+
+		ExecutorService executorService = Executors.newFixedThreadPool(1);
+		dao.executorService = executorService;
+
+		TableManager manager = new TableManager();
+		manager.addTable(User.table);
+		dao.tableManager = manager;
+
+		ShardResolver shardResolver = new SingleShardResolver();
+		dao.shardResolver = shardResolver;
+
+		ShardedDataSource dataSource = new H2InMemoryShardedDataSource("testOneShard");
+		dao.shardedDataSource = dataSource;
+
+		dao.addClass(User.class);
+		dao.updateAll(User.table.getCreateSql(null));
+
+		{
+			User user = new User();
+			user.name = "name";
+	
+			dao.createBean(user);
+			Assert.assertNotNull(user.id);
+			
+			rc.commit();
+			User db = dao.objectLookup(User.class, user.id);
+			Assert.assertNotNull(db);
+		}
+
+		{
+			User user = new User();
+			user.name = "name";
+	
+			dao.createBean(user);
+			Assert.assertNotNull(user.id);
+			
+			rc.rollback();
+			User db = dao.objectLookup(User.class, user.id);
+			Assert.assertNull(db);
+		}
+	}
+
 }
