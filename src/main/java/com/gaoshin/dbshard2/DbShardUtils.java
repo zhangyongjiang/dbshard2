@@ -63,56 +63,62 @@ public class DbShardUtils {
 		sbb.append(")");
 		sqls.add(sbb.toString());
 		
-		for(ClassIndex index : classTable.getIndexes()) {
-			String[] columns = index.columns;
-			String tableName = index.getTableName();
-			StringBuilder sb = new StringBuilder();
-			StringBuilder indexTable = new StringBuilder();
-			sb.append("create table if not exists ").append(tableName).append("(id varchar(64)");
-			indexTable.append("alter table ").append(tableName).append(" add ").append(index.unique ? " unique " : "").append(" index i").append(tableName).append("(");
-			boolean first = true;
-			boolean hasCreated = false;
-			for(String c : columns) {
-				ColumnPath cp = new ColumnPath(c);
-				String columnName = cp.getColumnName();
-				if("created".equals(columnName))
-					hasCreated = true;
-				sb.append(",");
-				sb.append(columnName).append(" ").append(getColumnType(beanCls, c));
-				
-				if(first) {
-					first = false;
+		ClassIndex[] indexes = classTable.getIndexes();
+		if(indexes != null) {
+			for(ClassIndex index : indexes) {
+				String[] columns = index.columns;
+				String tableName = index.getTableName();
+				StringBuilder sb = new StringBuilder();
+				StringBuilder indexTable = new StringBuilder();
+				sb.append("create table if not exists ").append(tableName).append("(id varchar(64)");
+				indexTable.append("alter table ").append(tableName).append(" add ").append(index.unique ? " unique " : "").append(" index i").append(tableName).append("(");
+				boolean first = true;
+				boolean hasCreated = false;
+				for(String c : columns) {
+					ColumnPath cp = new ColumnPath(c);
+					String columnName = cp.getColumnName();
+					if("created".equals(columnName))
+						hasCreated = true;
+					sb.append(",");
+					sb.append(columnName).append(" ").append(getColumnType(beanCls, c));
+					
+					if(first) {
+						first = false;
+					}
+					else {
+						indexTable.append(",");
+					}
+					indexTable.append(columnName);
 				}
-				else {
-					indexTable.append(",");
-				}
-				indexTable.append(columnName);
+				if(!hasCreated)
+					sb.append(", created bigint)");
+				else 
+					sb.append(")");
+				indexTable.append(")");
+				sqls.add(sb.toString());
+	            sqls.add(indexTable.toString());
+	            sqls.add("alter table " + tableName + " add index idindex (id)");
 			}
-			if(!hasCreated)
-				sb.append(", created bigint)");
-			else 
-				sb.append(")");
-			indexTable.append(")");
-			sqls.add(sb.toString());
-            sqls.add(indexTable.toString());
-            sqls.add("alter table " + tableName + " add index idindex (id)");
 		}
 		
-		for(ClassMapping mapping : classTable.getMappings()) {
-			StringBuilder table = new StringBuilder();
-			table.append("create table if not exists ").append(mapping.getTableName()).append("(pid varchar(64), sid varchar(64), created bigint");
-			for(String c : mapping.otherColumns) {
-				ColumnPath cp = new ColumnPath(c);
-				String columnName = cp.getColumnName();
-				if("created".equals(columnName))
-					continue;
-				table.append(",");
-				table.append(columnName).append(" ").append(getColumnType(beanCls, c));
+		ClassMapping[] mappings = classTable.getMappings();
+		if(mappings != null) {
+			for(ClassMapping mapping : mappings) {
+				StringBuilder table = new StringBuilder();
+				table.append("create table if not exists ").append(mapping.getTableName()).append("(pid varchar(64), sid varchar(64), created bigint");
+				for(String c : mapping.otherColumns) {
+					ColumnPath cp = new ColumnPath(c);
+					String columnName = cp.getColumnName();
+					if("created".equals(columnName))
+						continue;
+					table.append(",");
+					table.append(columnName).append(" ").append(getColumnType(beanCls, c));
+				}
+				table.append(")");
+				sqls.add(table.toString());
+	            sqls.add("alter table " + mapping.getTableName() + " add index sidindex (sid)");
+	            sqls.add("alter table " + mapping.getTableName() + " add index pidindex (pid)");
 			}
-			table.append(")");
-			sqls.add(table.toString());
-            sqls.add("alter table " + mapping.getTableName() + " add index sidindex (sid)");
-            sqls.add("alter table " + mapping.getTableName() + " add index pidindex (pid)");
 		}
 		
 		return sqls;

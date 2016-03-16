@@ -23,6 +23,14 @@ public class TableManager {
 	private HashMap<Class,ClassTable> tables = new HashMap<>();
 
 	public ClassTable getTable(Class cls) {
-		return tables.get(cls);
+		synchronized (tables) {
+			return tables.get(cls);
+		}
+	}
+	
+	public void addTable(ClassTable ct) {
+		synchronized (tables) {
+			tables.put(ct.getForcls(), ct);
+		}
 	}
 }

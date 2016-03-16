@@ -26,7 +26,7 @@ public class ClassTable {
 		return forcls;
 	}
 	
-	public void ClassTable(Class forcls, ClassIndex[] indexes, ClassMapping[] mappings) {
+	public ClassTable(Class forcls, ClassIndex[] indexes, ClassMapping[] mappings) {
 		this.forcls = forcls;
 		this.indexes = indexes;
 		this.mappings = mappings;
