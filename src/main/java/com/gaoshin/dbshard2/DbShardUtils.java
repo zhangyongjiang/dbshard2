@@ -34,10 +34,19 @@ import common.util.reflection.AnnotatedFieldCallback;
 import common.util.reflection.ReflectionUtil;
 
 public class DbShardUtils {
-	public static List<String> getSqls(final ClassTable classTable) {
+	public static List<String> getSqls(final ClassTable classTable, DbDialet dbdialet) {
 		List<String> sqls = new ArrayList<String>();
 		final Class<?> beanCls = classTable.getForcls();
-		final StringBuilder sbb = new StringBuilder( "create table if not exists " + beanCls.getSimpleName() + " (id varchar(64) primary key, created bigint, updated bigint, version integer, json text");
+		final StringBuilder sbb = new StringBuilder( );
+		if(DbDialet.Mysql.equals(dbdialet)) {
+		    sbb.append("create table if not exists " + beanCls.getSimpleName() + " (id varchar(64) primary key, created bigint, updated bigint, version integer, json text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin");
+		}
+		else if(DbDialet.H2.equals(dbdialet)) {
+            sbb.append("create table if not exists " + beanCls.getSimpleName() + " (id varchar(64) primary key, created bigint, updated bigint, version integer, json text");
+		}
+		else {
+		    throw new RuntimeException("unsupported db dialet");
+		}
 		try {
 			ReflectionUtil.iterateAnnotatedFields(beanCls.newInstance(), Column.class, new AnnotatedFieldCallback() {
 				@Override

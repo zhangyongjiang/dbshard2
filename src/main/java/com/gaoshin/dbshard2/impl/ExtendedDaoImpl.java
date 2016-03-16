@@ -41,6 +41,7 @@ import com.gaoshin.dbshard2.ClassTable;
 import com.gaoshin.dbshard2.ColumnPath;
 import com.gaoshin.dbshard2.ColumnValues;
 import com.gaoshin.dbshard2.DaoManager;
+import com.gaoshin.dbshard2.DbDialet;
 import com.gaoshin.dbshard2.DbShardUtils;
 import com.gaoshin.dbshard2.ExtendedDao;
 import com.gaoshin.dbshard2.ExtendedDataSource;
@@ -449,11 +450,11 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
-	public List<String> getCreateTableSqls() {
+	public List<String> getCreateTableSqls(DbDialet dialet) {
 		List<String> sqls = new ArrayList<String>();
 		for(Class cls : forClasses) {
 		    System.out.println("get sql for class " + cls);
-			for(String sql : DbShardUtils.getSqls(tableManager.getTable(cls))) {
+			for(String sql : DbShardUtils.getSqls(tableManager.getTable(cls), dialet)) {
 				if(!sqls.contains(sql)) {
 		            System.out.println(sql);
 					sqls.add(sql);
@@ -464,8 +465,8 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 	
 	@Override
-	public void createTables() {
-	    for(String sql : getCreateTableSqls()) {
+	public void createTables(DbDialet dialet) {
+	    for(String sql : getCreateTableSqls(dialet)) {
 	        try {
                 updateAll(sql);
             } catch (Exception e) {
