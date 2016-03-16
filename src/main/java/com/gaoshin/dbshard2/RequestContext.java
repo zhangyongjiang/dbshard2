@@ -26,10 +26,10 @@ public class RequestContext {
     
     public synchronized static RequestContext getRequestContext() {
         RequestContext context = localRequestContext.get();
-//        if(context == null) {
-//            context = new RequestContext();
-//            localRequestContext.set(context);
-//        }
+        if(context == null) {
+            context = new RequestContext();
+            localRequestContext.set(context);
+        }
         return context;
     }
     
