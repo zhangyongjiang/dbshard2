@@ -17,17 +17,25 @@
 
 package com.gaoshin.dbshard2;
 
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
-
-public class H2InMemoryShardedDataSource extends ShardedDataSourceImpl {
-	public H2InMemoryShardedDataSource() {
-		this(UUID.randomUUID().toString());
-	}
+public class ClassSqls {
+	public Class forcls;
+	public List<String> sqls = new ArrayList<>();
 	
-	public H2InMemoryShardedDataSource(String dbname) {
-		setDbClassName("org.h2.Driver");
-		setUserName("sa");
-		setUrl("jdbc:h2:mem:" + dbname+ "__DATASOURCEID__;MODE=MySQL;DB_CLOSE_ON_EXIT=FALSE");
+	public static void a2b(Map<Class, ClassSqls> a, Map<Class, ClassSqls> b) {
+		for(Entry<Class, ClassSqls> entry : a.entrySet()) {
+			Class cls = entry.getKey();
+			ClassSqls classSqls = b.get(cls);
+			if(classSqls == null) {
+				b.put(cls, entry.getValue());
+			}
+			else {
+				classSqls.sqls.addAll(entry.getValue().sqls);
+			}
+		}
 	}
 }

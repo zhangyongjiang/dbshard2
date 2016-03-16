@@ -25,8 +25,8 @@ import com.gaoshin.dbshard2.entity.MappedData;
 import com.gaoshin.dbshard2.impl.BeanHandler;
 
 public interface ExtendedDao extends BaseDao {
-	List<String> getCreateTableSqls(DbDialet dialet);
-	void createTables(DbDialet dialet);
+	Map<Class, ClassSqls> getCreateTableSqls(DbDialet dialet);
+	void updateSqls(Map<Class, ClassSqls> sqls);
 
 	List<Class> listManagedClasses();
 	void createBean(Object obj);

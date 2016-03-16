@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -37,6 +38,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.gaoshin.dbshard2.ClassIndex;
 import com.gaoshin.dbshard2.ClassMapping;
+import com.gaoshin.dbshard2.ClassSqls;
 import com.gaoshin.dbshard2.ClassTable;
 import com.gaoshin.dbshard2.ColumnPath;
 import com.gaoshin.dbshard2.ColumnValues;
@@ -145,13 +147,17 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			
 			String table = mapping.getTableName();
 			StringBuilder sql = new StringBuilder().append("insert into ").append(table).append(" (pid, sid, created");
-			for(String s : mapping.otherColumns) {
-				String columnName = new ColumnPath(s).getColumnName();
-				sql.append(",").append(columnName);
+			if(mapping.otherColumns != null) {
+				for(String s : mapping.otherColumns) {
+					String columnName = new ColumnPath(s).getColumnName();
+					sql.append(",").append(columnName);
+				}
 			}
 			sql.append(")").append(" values (?, ?, ?");
-			for(String s : mapping.otherColumns) {
-				sql.append(", ?");
+			if(mapping.otherColumns != null) {
+				for(String s : mapping.otherColumns) {
+					sql.append(", ?");
+				}
 			}
 			sql.append(")");
 
@@ -453,31 +459,36 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
-	public List<String> getCreateTableSqls(DbDialet dialet) {
-		List<String> sqls = new ArrayList<String>();
+	public Map<Class, ClassSqls> getCreateTableSqls(DbDialet dialet) {
+		Map<Class, ClassSqls> result = new HashMap<>();
 		for(Class cls : forClasses) {
 		    System.out.println("get sql for class " + cls);
-			for(String sql : DbShardUtils.getSqls(tableManager.getTable(cls), dialet)) {
-				if(!sqls.contains(sql)) {
-		            System.out.println(sql);
-					sqls.add(sql);
+		    Map<Class, ClassSqls> map = DbShardUtils.getSqls(tableManager.getTable(cls), dialet);
+			for(Entry<Class, ClassSqls> entry : map.entrySet()) {
+				Class key = entry.getKey();
+				ClassSqls classSqls = result.get(key);
+				if(classSqls == null) {
+					result.put(key, entry.getValue());
 				}
+				else 
+					classSqls.sqls.addAll(entry.getValue().sqls);
 			}
 		}
-		return sqls;
+		return result;
 	}
 	
 	@Override
-	public void createTables(DbDialet dialet) {
-	    for(String sql : getCreateTableSqls(dialet)) {
-	        try {
-                updateAll(sql);
-            } catch (Exception e) {
-                System.err.println(e.getMessage());
-            }
-	    }
+	public void updateSqls(Map<Class, ClassSqls> sqls) {
+		for(Entry<Class, ClassSqls> entry : sqls.entrySet()) {
+			Class key = entry.getKey();
+			if(forClasses.contains(key)) {
+				for(String sql : entry.getValue().sqls) {
+					updateAll(sql);
+				}
+			}
+		}
 	}
-
+	
 	@Override
 	public List<MappedData> mappedLookup(Class pclass, Class sclass, String pid) {
 		ClassTable ct = tableManager.getTable(sclass);

@@ -20,7 +20,6 @@ package com.gaoshin.dbshard2;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,40 +27,22 @@ import java.util.List;
 import java.util.Map;
 
 import javax.persistence.Column;
-import javax.persistence.Id;
 
-import common.util.reflection.AnnotatedFieldCallback;
 import common.util.reflection.ReflectionUtil;
 
 public class DbShardUtils {
-	public static List<String> getSqls(final ClassTable classTable, DbDialet dbdialet) {
-		List<String> sqls = new ArrayList<String>();
+	public static Map<Class, ClassSqls> getSqls(final ClassTable classTable, DbDialet dbdialet) {
+		Map<Class, ClassSqls> sqls = new HashMap<>();
 		final Class<?> beanCls = classTable.getForcls();
-		final StringBuilder sbb = new StringBuilder( );
-		if(DbDialet.Mysql.equals(dbdialet)) {
-		    sbb.append("create table if not exists " + beanCls.getSimpleName() + " (id varchar(64) primary key, created bigint, updated bigint, version integer, json text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin");
-		}
-		else if(DbDialet.H2.equals(dbdialet)) {
-            sbb.append("create table if not exists " + beanCls.getSimpleName() + " (id varchar(64) primary key, created bigint, updated bigint, version integer, json text");
-		}
-		else {
-		    throw new RuntimeException("unsupported db dialet");
-		}
-		try {
-			ReflectionUtil.iterateAnnotatedFields(beanCls.newInstance(), Column.class, new AnnotatedFieldCallback() {
-				@Override
-				public void field(Object o, Field field) throws Exception {
-					Id anno = field.getAnnotation(Id.class);
-					if(anno != null) return;
-					sbb.append(",").append(field.getName()).append(" ").append(getColumnType(beanCls, field.getName()));
-				}
-			});
-		} catch (Throwable e) {
-//		    e.printStackTrace();
-			System.err.println("============ " + e.getMessage());
-		}
-		sbb.append(")");
-		sqls.add(sbb.toString());
+
+		String createSql = classTable.getCreateSql(dbdialet);
+		if(createSql == null)
+		    throw new RuntimeException("don't know how to create table " + classTable.getForcls());
+		
+		ClassSqls thiscls = new ClassSqls();
+		thiscls.forcls = classTable.getForcls();
+		thiscls.sqls.add(createSql);
+		sqls.put(thiscls.forcls, thiscls);
 		
 		ClassIndex[] indexes = classTable.getIndexes();
 		if(indexes != null) {
@@ -95,29 +76,39 @@ public class DbShardUtils {
 				else 
 					sb.append(")");
 				indexTable.append(")");
-				sqls.add(sb.toString());
-	            sqls.add(indexTable.toString());
-	            sqls.add("alter table " + tableName + " add index idindex (id)");
+				thiscls.sqls.add(sb.toString());
+				thiscls.sqls.add(indexTable.toString());
+				thiscls.sqls.add("alter table " + tableName + " add index idindex (id)");
 			}
 		}
 		
 		ClassMapping[] mappings = classTable.getMappings();
 		if(mappings != null) {
 			for(ClassMapping mapping : mappings) {
+				Class map2cls = mapping.map2cls;
+				ClassSqls map2sqls = sqls.get(map2cls);
+				if(map2sqls == null) {
+					map2sqls = new ClassSqls();
+					map2sqls.forcls = map2cls;
+					sqls.put(map2cls, map2sqls);
+				}
+				
 				StringBuilder table = new StringBuilder();
 				table.append("create table if not exists ").append(mapping.getTableName()).append("(pid varchar(64), sid varchar(64), created bigint");
-				for(String c : mapping.otherColumns) {
-					ColumnPath cp = new ColumnPath(c);
-					String columnName = cp.getColumnName();
-					if("created".equals(columnName))
-						continue;
-					table.append(",");
-					table.append(columnName).append(" ").append(getColumnType(beanCls, c));
+				if(mapping.otherColumns != null) {
+					for(String c : mapping.otherColumns) {
+						ColumnPath cp = new ColumnPath(c);
+						String columnName = cp.getColumnName();
+						if("created".equals(columnName))
+							continue;
+						table.append(",");
+						table.append(columnName).append(" ").append(getColumnType(beanCls, c));
+					}
 				}
 				table.append(")");
-				sqls.add(table.toString());
-	            sqls.add("alter table " + mapping.getTableName() + " add index sidindex (sid)");
-	            sqls.add("alter table " + mapping.getTableName() + " add index pidindex (pid)");
+				map2sqls.sqls.add(table.toString());
+				map2sqls.sqls.add("alter table " + mapping.getTableName() + " add index sidindex (sid)");
+				map2sqls.sqls.add("alter table " + mapping.getTableName() + " add index pidindex (pid)");
 			}
 		}
 		

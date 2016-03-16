@@ -9,7 +9,6 @@ import com.google.common.hash.Hashing;
 public class Account {
 	public String id;
 	public long created;
-	public long updated;
 	public String userId;
 	public String extId;
 	public String type;
@@ -26,5 +25,6 @@ public class Account {
 			}, 
 			new ClassMapping[] {
 				new ClassMapping(Account.class, "userId", User.class, null)
-	});
+	}).addCreateSql(null, "create table if not exists Account (id varchar(64) primary key, created bigint, userId varchar(64), extId varchar(255), type varchar(64))");
+
 }

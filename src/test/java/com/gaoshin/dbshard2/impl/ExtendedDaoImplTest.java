@@ -2,6 +2,7 @@ package com.gaoshin.dbshard2.impl;
 
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -9,15 +10,18 @@ import java.util.concurrent.Executors;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.gaoshin.dbshard2.ClassSqls;
 import com.gaoshin.dbshard2.H2InMemoryShardedDataSource;
 import com.gaoshin.dbshard2.ObjectId;
 import com.gaoshin.dbshard2.RequestContext;
 import com.gaoshin.dbshard2.ShardResolver;
 import com.gaoshin.dbshard2.ShardedDataSource;
 import com.gaoshin.dbshard2.TableManager;
+import com.gaoshin.dbshard2.beans.Account;
 import com.gaoshin.dbshard2.beans.User;
 
 public class ExtendedDaoImplTest {
+	
 	@Test
 	public void testOneShard() {
 		ExtendedDaoImpl dao = new ExtendedDaoImpl();
@@ -32,11 +36,11 @@ public class ExtendedDaoImplTest {
 		ShardResolver shardResolver = new SingleShardResolver();
 		dao.shardResolver = shardResolver;
 
-		ShardedDataSource dataSource = new H2InMemoryShardedDataSource("testOneShard");
+		ShardedDataSource dataSource = new H2InMemoryShardedDataSource();
 		dao.shardedDataSource = dataSource;
 
 		dao.addClass(User.class);
-		dao.updateAll(User.table.getCreateSql(null));
+		dao.updateSqls(dao.getCreateTableSqls(null));
 
 		User user = new User();
 		user.name = "name";
@@ -72,11 +76,11 @@ public class ExtendedDaoImplTest {
 		shardResolver.setMaxShardId4Write(numberOfShards);
 		dao.shardResolver = shardResolver;
 
-		ShardedDataSource dataSource = new H2InMemoryShardedDataSource("shard16");
+		ShardedDataSource dataSource = new H2InMemoryShardedDataSource();
 		dao.shardedDataSource = dataSource;
 
 		dao.addClass(User.class);
-		dao.updateAll(User.table.getCreateSql(null));
+		dao.updateSqls(dao.getCreateTableSqls(null));
 
 		final Map<String, User> map = new HashMap<String, User>();
 		int loop = 1000;
@@ -118,11 +122,11 @@ public class ExtendedDaoImplTest {
 		shardResolver.setMaxShardId4Write(max);
 		dao.shardResolver = shardResolver;
 
-		ShardedDataSource dataSource = new H2InMemoryShardedDataSource("8to13");
+		ShardedDataSource dataSource = new H2InMemoryShardedDataSource();
 		dao.shardedDataSource = dataSource;
 
 		dao.addClass(User.class);
-		dao.updateAll(User.table.getCreateSql(null));
+		dao.updateSqls(dao.getCreateTableSqls(null));
 
 		final Map<String, User> map = new HashMap<String, User>();
 		int loop = 1000;
@@ -161,11 +165,11 @@ public class ExtendedDaoImplTest {
 		ShardResolver shardResolver = new SingleShardResolver();
 		dao.shardResolver = shardResolver;
 
-		ShardedDataSource dataSource = new H2InMemoryShardedDataSource("testOneShard");
+		ShardedDataSource dataSource = new H2InMemoryShardedDataSource();
 		dao.shardedDataSource = dataSource;
 
 		dao.addClass(User.class);
-		dao.updateAll(User.table.getCreateSql(null));
+		dao.updateSqls(dao.getCreateTableSqls(null));
 
 		{
 			User user = new User();
@@ -189,6 +193,95 @@ public class ExtendedDaoImplTest {
 			rc.rollback();
 			User db = dao.objectLookup(User.class, user.id);
 			Assert.assertNull(db);
+		}
+	}
+	
+	@Test
+	public void testIndexAndMapping() {
+		TableManager manager = new TableManager();
+		Map<Class, ClassSqls> createTableSqls;
+		
+		ExtendedDaoImpl userDao = new ExtendedDaoImpl();
+		{
+			int numberOfShards = 4;
+	
+			ExecutorService executorService = Executors.newFixedThreadPool(32);
+			userDao.executorService = executorService;
+	
+			manager.addTable(User.table);
+			userDao.tableManager = manager;
+	
+			ShardResolverBase shardResolver = new ShardResolverBase<>();
+			shardResolver.setNumberOfShards(numberOfShards);
+			shardResolver.setMinShardId4Write(0);
+			shardResolver.setMaxShardId4Write(numberOfShards);
+			userDao.shardResolver = shardResolver;
+	
+			ShardedDataSource dataSource = new H2InMemoryShardedDataSource();
+			userDao.shardedDataSource = dataSource;
+
+			userDao.addClass(User.class);
+			createTableSqls = userDao.getCreateTableSqls(null);
+		}
+		
+		ExtendedDaoImpl accountDao = new ExtendedDaoImpl();
+		{
+			int numberOfShards = 16;
+	
+			ExecutorService executorService = Executors.newFixedThreadPool(32);
+			accountDao.executorService = executorService;
+	
+			manager.addTable(Account.table);
+			accountDao.tableManager = manager;
+	
+			FixedShardResolver shardResolver = new FixedShardResolver<>();
+			shardResolver.setNumberOfShards(numberOfShards);
+			accountDao.shardResolver = shardResolver;
+	
+			ShardedDataSource dataSource = new H2InMemoryShardedDataSource();
+			accountDao.shardedDataSource = dataSource;
+
+			accountDao.addClass(Account.class);
+			Map<Class, ClassSqls> accTables = accountDao.getCreateTableSqls(null);
+			ClassSqls.a2b(accTables, createTableSqls);
+		}
+		
+		userDao.updateSqls(createTableSqls);
+		accountDao.updateSqls(createTableSqls);
+		
+		User user = new User();
+		userDao.createBean(user);
+		
+		Account acc0 = new Account();
+		acc0.extId = "0";
+		acc0.type = "t0";
+		acc0.userId = user.id;
+		accountDao.createBean(acc0);
+		
+		Account acc1 = new Account();
+		acc1.extId = "1";
+		acc1.type = "t0";
+		acc1.userId = user.id;
+		accountDao.createBean(acc1);
+		
+		{
+			Map<String, Object> params = new HashMap<>();
+			params.put("extId", acc0.extId);
+			params.put("type", acc0.type);
+			List<Account> list = accountDao.indexBeanLookup(Account.class, params);
+			Assert.assertEquals(1, list.size());
+		}
+		
+		{
+			Map<String, Object> params = new HashMap<>();
+			params.put("type", acc0.type);
+			List<Account> list = accountDao.indexBeanLookup(Account.class, params);
+			Assert.assertEquals(2, list.size());
+		}
+		
+		{
+			List<String> list = userDao.mappedIdLookup(User.class, Account.class, user.id);
+			Assert.assertEquals(2, list.size());
 		}
 	}
 

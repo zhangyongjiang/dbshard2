@@ -8,5 +8,5 @@ public class User {
 	public String name;
 	
 	public static ClassTable table = new ClassTable(User.class, null, null)
-			.addCreateSql(null, "create table User (id varchar(64) primary key, created bigint, name varchar(64))");
+			.addCreateSql(null, "create table if not exists User (id varchar(64) primary key, created bigint, name varchar(64))");
 }
