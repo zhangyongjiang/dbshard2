@@ -96,6 +96,53 @@ public class ExtendedDaoImplTest {
 		});
 		Assert.assertEquals(0, map.size());
 	}
+
+	@Test
+	public void testMinMaxShardIdForWrite() {
+		final int numberOfShards = 16;
+		final int min = 8;
+		final int max = 13;
+		
+		ExtendedDaoImpl dao = new ExtendedDaoImpl();
+
+		ExecutorService executorService = Executors.newFixedThreadPool(32);
+		dao.executorService = executorService;
+
+		TableManager manager = new TableManager();
+		manager.addTable(User.table);
+		dao.tableManager = manager;
+
+		ShardResolverBase shardResolver = new ShardResolverBase<>();
+		shardResolver.setNumberOfShards(numberOfShards);
+		shardResolver.setMinShardId4Write(min);
+		shardResolver.setMaxShardId4Write(max);
+		dao.shardResolver = shardResolver;
+
+		ShardedDataSource dataSource = new H2InMemoryShardedDataSource("8to13");
+		dao.shardedDataSource = dataSource;
+
+		dao.addClass(User.class);
+		dao.updateAll(User.table.getCreateSql(null));
+
+		final Map<String, User> map = new HashMap<String, User>();
+		int loop = 1000;
+		for (int i = 0; i < loop; i++) {
+			User user = new User();
+			user.name = "name" + i;
+
+			dao.createBean(user);
+			map.put(user.name, user);
+		}
+		
+		dao.forEachBean(User.class, new BeanHandler<User>() {
+			@Override
+            public void processBean(User bean) {
+				ObjectId oi = new ObjectId(bean.id);
+				Assert.assertTrue(oi.getShard() >= min);
+				Assert.assertTrue(oi.getShard() < max);
+            }
+		});
+	}
 	
 	@Test
 	public void testTransaction() throws SQLException {
