@@ -31,7 +31,7 @@ public class ExtendedDaoImplTest {
 
 		TableManager manager = new TableManager();
 		manager.addTable(User.table);
-		dao.tableManager = manager;
+		dao.setTableManager(manager);
 
 		ShardResolver shardResolver = new SingleShardResolver();
 		dao.shardResolver = shardResolver;
@@ -68,7 +68,7 @@ public class ExtendedDaoImplTest {
 
 		TableManager manager = new TableManager();
 		manager.addTable(User.table);
-		dao.tableManager = manager;
+		dao.setTableManager(manager);
 
 		ShardResolverBase shardResolver = new ShardResolverBase<>();
 		shardResolver.setNumberOfShards(numberOfShards);
@@ -114,7 +114,7 @@ public class ExtendedDaoImplTest {
 
 		TableManager manager = new TableManager();
 		manager.addTable(User.table);
-		dao.tableManager = manager;
+		dao.setTableManager(manager);
 
 		ShardResolverBase shardResolver = new ShardResolverBase<>();
 		shardResolver.setNumberOfShards(numberOfShards);
@@ -160,7 +160,7 @@ public class ExtendedDaoImplTest {
 
 		TableManager manager = new TableManager();
 		manager.addTable(User.table);
-		dao.tableManager = manager;
+		dao.setTableManager(manager);
 
 		ShardResolver shardResolver = new SingleShardResolver();
 		dao.shardResolver = shardResolver;
@@ -209,7 +209,7 @@ public class ExtendedDaoImplTest {
 			userDao.executorService = executorService;
 	
 			manager.addTable(User.table);
-			userDao.tableManager = manager;
+			userDao.setTableManager(manager);
 	
 			ShardResolverBase shardResolver = new ShardResolverBase<>();
 			shardResolver.setNumberOfShards(numberOfShards);
@@ -232,7 +232,7 @@ public class ExtendedDaoImplTest {
 			accountDao.executorService = executorService;
 	
 			manager.addTable(Account.table);
-			accountDao.tableManager = manager;
+			accountDao.setTableManager(manager);
 	
 			FixedShardResolver shardResolver = new FixedShardResolver<>();
 			shardResolver.setNumberOfShards(numberOfShards);

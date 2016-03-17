@@ -58,7 +58,7 @@ public class BaseDaoImpl implements BaseDao {
 	protected ShardResolver shardResolver;
 	protected ShardedDataSource shardedDataSource;
 	protected ExecutorService executorService;
-	protected TableManager tableManager;
+	private TableManager tableManager;
 	
 	public ShardResolver getShardResolver() {
 		return shardResolver;
@@ -686,6 +686,12 @@ public class BaseDaoImpl implements BaseDao {
     
     public static Long getCreated(Object o) {
         return (Long) ReflectionUtil.getFieldValue(o, "created");
+    }
+	public TableManager getTableManager() {
+	    return tableManager;
+    }
+	public void setTableManager(TableManager tableManager) {
+	    this.tableManager = tableManager;
     }
 
 }

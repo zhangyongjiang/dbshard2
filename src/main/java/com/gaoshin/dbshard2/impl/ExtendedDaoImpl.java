@@ -284,7 +284,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 	
 	public ClassTable getTableForBean(Object obj) {
-		return tableManager.getTable(obj.getClass());
+		return getTableManager().getTable(obj.getClass());
 	}
 	
 	protected int removeIndexesForBean(Object obj){
@@ -439,7 +439,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	@Override
 	public ClassIndex indexByKeys(Class forClass, Collection<String>keys) {
 		ClassIndex ti = null;
-		ClassTable table = tableManager.getTable(forClass);
+		ClassTable table = getTableManager().getTable(forClass);
 		int maxMatched = 0;
 		for(ClassIndex ci : table.getIndexes()) {
 			int matched = 0;
@@ -463,7 +463,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		Map<Class, ClassSqls> result = new HashMap<>();
 		for(Class cls : forClasses) {
 		    System.out.println("get sql for class " + cls);
-		    Map<Class, ClassSqls> map = DbShardUtils.getSqls(tableManager.getTable(cls), dialet);
+		    Map<Class, ClassSqls> map = DbShardUtils.getSqls(getTableManager().getTable(cls), dialet);
 			for(Entry<Class, ClassSqls> entry : map.entrySet()) {
 				Class key = entry.getKey();
 				ClassSqls classSqls = result.get(key);
@@ -491,7 +491,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	@Override
 	public List<MappedData> mappedLookup(Class pclass, Class sclass, String pid) {
-		ClassTable ct = tableManager.getTable(sclass);
+		ClassTable ct = getTableManager().getTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
 		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select * from " + cm.getTableName() + " where pid = :pid";
@@ -502,7 +502,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	@Override
 	public int mappedCountLookup(Class pclass, Class sclass, String pid) {
-		ClassTable ct = tableManager.getTable(sclass);
+		ClassTable ct = getTableManager().getTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
 		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select count(*) from " + cm.getTableName() + " where pid = :pid";
@@ -513,7 +513,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	@Override
 	public List<MappedData> mappedLookup(Class pclass, Class sclass, String pid, int offset, int size) {
-		ClassTable ct = tableManager.getTable(sclass);
+		ClassTable ct = getTableManager().getTable(sclass);
 		ClassMapping cm = ct.getClassMapping(pclass);
 		final ExtendedDataSource dataSource = getShardedDataSource().getDataSourceByObjectId(pid);
 		final String sql = "select * from " + cm.getTableName() + " where pid = :pid order by created desc limit " + offset + "," + size;

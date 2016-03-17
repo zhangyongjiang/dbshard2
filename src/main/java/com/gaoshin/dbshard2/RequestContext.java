@@ -21,14 +21,20 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 public class RequestContext {
+	private static final Logger logger = Logger.getLogger(RequestContext.class);
+	
     private static final ThreadLocal<RequestContext> localRequestContext = new ThreadLocal<>();
     
     public synchronized static RequestContext getRequestContext() {
         RequestContext context = localRequestContext.get();
+    	logger.debug("RC context is " + context);
         if(context == null) {
             context = new RequestContext();
             localRequestContext.set(context);
+        	logger.debug("RC create ");
         }
         return context;
     }
@@ -46,6 +52,7 @@ public class RequestContext {
 	}
 	
 	public void commit() throws SQLException {
+    	logger.debug("RC commit");
 		synchronized (dataSourcesUsedByRequest) {
 			for(ExtendedDataSource ds : dataSourcesUsedByRequest) {
 				ds.commitConnection(this);
@@ -54,6 +61,7 @@ public class RequestContext {
 	}
 	
 	public void rollback() throws SQLException {
+    	logger.debug("RC rollback");
 		synchronized (dataSourcesUsedByRequest) {
 			for(ExtendedDataSource ds : dataSourcesUsedByRequest) {
 				ds.rollbackConnection(this);
@@ -62,6 +70,7 @@ public class RequestContext {
 	}
 	
 	public void close() throws Exception {
+    	logger.debug("RC close");
 		synchronized (dataSourcesUsedByRequest) {
 			for(ExtendedDataSource ds : dataSourcesUsedByRequest) {
 				ds.closeConnection(this);
