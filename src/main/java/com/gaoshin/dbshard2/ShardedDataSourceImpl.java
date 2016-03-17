@@ -38,6 +38,8 @@ public class ShardedDataSourceImpl implements ShardedDataSource {
 	private int maxIdle = 5;
 	private boolean autoCommit = false;
 	private String dbBaseName = null;
+	private String validationQuery;
+	private boolean testOnBorrow;
 	
 	private Map<Integer, ExtendedDataSource> dataSources;
 	
@@ -137,6 +139,8 @@ public class ShardedDataSourceImpl implements ShardedDataSource {
                 ds.setPoolPreparedStatements(false);
                 ds.setAutoCommit(isAutoCommit());
                 ds.setDataSourceId(dataSourceId);
+                ds.setValidationQuery(validationQuery);
+                ds.setTestOnBorrow(testOnBorrow);
             }
         }
 	    
@@ -188,5 +192,21 @@ public class ShardedDataSourceImpl implements ShardedDataSource {
 	public void setDbBaseName(String dbBaseName) {
 		this.dbBaseName = dbBaseName;
 	}
+
+	public String getValidationQuery() {
+	    return validationQuery;
+    }
+
+	public void setValidationQuery(String validationQuery) {
+	    this.validationQuery = validationQuery;
+    }
+
+	public boolean isTestOnBorrow() {
+	    return testOnBorrow;
+    }
+
+	public void setTestOnBorrow(boolean testOnBorrow) {
+	    this.testOnBorrow = testOnBorrow;
+    }
 
 }
