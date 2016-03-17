@@ -483,6 +483,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			Class key = entry.getKey();
 			if(forClasses.contains(key)) {
 				for(String sql : entry.getValue().sqls) {
+					logger.debug(sql);
 					updateAll(sql);
 				}
 			}

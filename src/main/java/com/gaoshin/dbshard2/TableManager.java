@@ -17,6 +17,7 @@
 
 package com.gaoshin.dbshard2;
 
+import java.util.Collection;
 import java.util.HashMap;
 
 public class TableManager {
@@ -32,5 +33,9 @@ public class TableManager {
 		synchronized (tables) {
 			tables.put(ct.getForcls(), ct);
 		}
+	}
+	
+	public Collection<ClassTable> getAllTables() {
+		return tables.values();
 	}
 }
