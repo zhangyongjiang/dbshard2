@@ -28,9 +28,13 @@ import java.util.Map;
 
 import javax.persistence.Column;
 
+import org.apache.log4j.Logger;
+
 import common.util.reflection.ReflectionUtil;
 
 public class DbShardUtils {
+	private static final Logger logger = Logger.getLogger(DbShardUtils.class);
+	
 	public static Map<Class, ClassSqls> getSqls(final ClassTable classTable, DbDialet dbdialet) {
 		Map<Class, ClassSqls> sqls = new HashMap<>();
 		final Class<?> beanCls = classTable.getForcls();
@@ -42,6 +46,7 @@ public class DbShardUtils {
 		ClassSqls thiscls = new ClassSqls();
 		thiscls.forcls = classTable.getForcls();
 		thiscls.addSql(createSql);
+		logger.debug(classTable.getForcls() + ": " + createSql);
 		sqls.put(thiscls.forcls, thiscls);
 		
 		ClassIndex[] indexes = classTable.getIndexes();
@@ -76,9 +81,18 @@ public class DbShardUtils {
 				else 
 					sb.append(")");
 				indexTable.append(")");
-				thiscls.addSql(sb.toString());
-				thiscls.addSql(indexTable.toString());
-				thiscls.addSql("alter table " + tableName + " add index idindex (id)");
+				
+				String sql = sb.toString();
+				thiscls.addSql(sql);
+				logger.debug(thiscls.forcls + ": " + sql);
+				
+				sql = indexTable.toString();
+				thiscls.addSql(sql);
+				logger.debug(thiscls.forcls + ": " + sql);
+				
+				sql = "alter table " + tableName + " add index idindex (id)";
+				thiscls.addSql(sql);
+				logger.debug(thiscls.forcls + ": " + sql);
 			}
 		}
 		
@@ -106,9 +120,17 @@ public class DbShardUtils {
 					}
 				}
 				table.append(")");
-				map2sqls.addSql(table.toString());
-				map2sqls.addSql("alter table " + mapping.getTableName() + " add index sidindex (sid)");
-				map2sqls.addSql("alter table " + mapping.getTableName() + " add index pidindex (pid)");
+				String sql = table.toString();
+				map2sqls.addSql(sql);
+				logger.debug(map2cls + ": " + sql);
+				
+				sql = "alter table " + mapping.getTableName() + " add index sidindex (sid)";
+				map2sqls.addSql(sql);
+				logger.debug(map2cls + ": " + sql);
+				
+				sql = "alter table " + mapping.getTableName() + " add index pidindex (pid)";
+				map2sqls.addSql(sql);
+				logger.debug(map2cls + ": " + sql);
 			}
 		}
 		

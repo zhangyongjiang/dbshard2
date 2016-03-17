@@ -116,7 +116,9 @@ public class BaseDaoImpl implements BaseDao {
                         valuesSql.append("?");
                         Class<?> type = field.getType();
                         Object fieldValue = field.get(obj);
-                        if(type.isEnum()) {
+                        if(fieldValue == null)
+                            values.add(null);
+                        else if(type.isEnum()) {
                             values.add(fieldValue.toString());
                         }
                         else if (String.class.equals(type))
