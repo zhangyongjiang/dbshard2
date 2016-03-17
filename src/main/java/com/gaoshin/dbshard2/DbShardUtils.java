@@ -41,7 +41,7 @@ public class DbShardUtils {
 		
 		ClassSqls thiscls = new ClassSqls();
 		thiscls.forcls = classTable.getForcls();
-		thiscls.sqls.add(createSql);
+		thiscls.addSql(createSql);
 		sqls.put(thiscls.forcls, thiscls);
 		
 		ClassIndex[] indexes = classTable.getIndexes();
@@ -76,9 +76,9 @@ public class DbShardUtils {
 				else 
 					sb.append(")");
 				indexTable.append(")");
-				thiscls.sqls.add(sb.toString());
-				thiscls.sqls.add(indexTable.toString());
-				thiscls.sqls.add("alter table " + tableName + " add index idindex (id)");
+				thiscls.addSql(sb.toString());
+				thiscls.addSql(indexTable.toString());
+				thiscls.addSql("alter table " + tableName + " add index idindex (id)");
 			}
 		}
 		
@@ -106,9 +106,9 @@ public class DbShardUtils {
 					}
 				}
 				table.append(")");
-				map2sqls.sqls.add(table.toString());
-				map2sqls.sqls.add("alter table " + mapping.getTableName() + " add index sidindex (sid)");
-				map2sqls.sqls.add("alter table " + mapping.getTableName() + " add index pidindex (pid)");
+				map2sqls.addSql(table.toString());
+				map2sqls.addSql("alter table " + mapping.getTableName() + " add index sidindex (sid)");
+				map2sqls.addSql("alter table " + mapping.getTableName() + " add index pidindex (pid)");
 			}
 		}
 		

@@ -26,6 +26,16 @@ public class ClassSqls {
 	public Class forcls;
 	public List<String> sqls = new ArrayList<>();
 	
+	public void addSql(String sql) {
+		if(!sqls.contains(sql))
+			sqls.add(sql);
+	}
+	
+	public void addAllSqls(List<String> sqls) {
+		for(String sql : sqls)
+			addSql(sql);
+	}
+	
 	public static void a2b(Map<Class, ClassSqls> a, Map<Class, ClassSqls> b) {
 		for(Entry<Class, ClassSqls> entry : a.entrySet()) {
 			Class cls = entry.getKey();
@@ -34,7 +44,7 @@ public class ClassSqls {
 				b.put(cls, entry.getValue());
 			}
 			else {
-				classSqls.sqls.addAll(entry.getValue().sqls);
+				classSqls.addAllSqls(entry.getValue().sqls);
 			}
 		}
 	}
