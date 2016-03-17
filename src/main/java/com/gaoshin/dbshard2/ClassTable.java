@@ -62,7 +62,10 @@ public class ClassTable {
 
 	public String getCreateSql(DbDialet dialet) {
 		synchronized (tableCreateSqls) {
-			return tableCreateSqls.get(dialet);
+			String sql = tableCreateSqls.get(dialet);
+			if(sql == null)
+				sql = tableCreateSqls.get(null);
+			return sql;
 		}
 	}
 
