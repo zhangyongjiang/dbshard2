@@ -535,7 +535,10 @@ public class BaseDaoImpl implements BaseDao {
 	
 	public void forEachDataSource(ShardRunnable runnable){
 		MultiTask mt = new MultiTask();
-		for(int i= 0; i<shardResolver.getNumberOfShards() / shardedDataSource.getShardsPerDataSource(); i++) {
+		int physicalShards = shardResolver.getNumberOfShards() / shardedDataSource.getShardsPerDataSource();
+		if((shardResolver.getNumberOfShards() % shardedDataSource.getShardsPerDataSource()) > 0)
+			physicalShards ++;
+		for(int i= 0; i<physicalShards; i++) {
 			ShardTask shardTask = new ShardTask(i, runnable);
 			mt.addTask(shardTask);
 		}
