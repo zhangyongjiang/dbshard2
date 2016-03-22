@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
 
 
 public class ShardedDataSourceImpl implements ShardedDataSource {
-	private static Logger logger = Logger.getLogger(ExtendedDataSource.class);
+	private static Logger logger = Logger.getLogger(ShardedDataSourceImpl.class);
 
 	private int shardsPerDataSource;
 	private String userName;
