@@ -200,7 +200,7 @@ public class BaseDaoImpl implements BaseDao {
 	}
 
 	@Override
-	public <T> T objectLookup(Class<T> cls, String id) {
+	public <T> T getObject(Class<T> cls, String id) {
 		T data = null;
 		if(id != null){
 				ObjectId oi = new ObjectId(id);

@@ -299,7 +299,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	@Override
 	public int delete(Class cls, String id) {
-		Object od = objectLookup(cls, id);
+		Object od = getObject(cls, id);
 		removeIndexesForBean(od);
 		removeMappingsForBean(od);
 		return super.delete(cls, id);

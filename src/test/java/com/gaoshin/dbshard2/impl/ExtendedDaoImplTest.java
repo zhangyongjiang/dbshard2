@@ -52,7 +52,7 @@ public class ExtendedDaoImplTest {
 		Assert.assertEquals(0, oi.getShard());
 		Assert.assertTrue(user.created > 0);
 
-		User db = dao.objectLookup(User.class, user.id);
+		User db = dao.getObject(User.class, user.id);
 		Assert.assertEquals(user.name, db.name);
 		Assert.assertEquals(user.id, db.id);
 		Assert.assertEquals(user.created, db.created);
@@ -179,7 +179,7 @@ public class ExtendedDaoImplTest {
 			Assert.assertNotNull(user.id);
 			
 			rc.commit();
-			User db = dao.objectLookup(User.class, user.id);
+			User db = dao.getObject(User.class, user.id);
 			Assert.assertNotNull(db);
 		}
 
@@ -191,7 +191,7 @@ public class ExtendedDaoImplTest {
 			Assert.assertNotNull(user.id);
 			
 			rc.rollback();
-			User db = dao.objectLookup(User.class, user.id);
+			User db = dao.getObject(User.class, user.id);
 			Assert.assertNull(db);
 		}
 	}

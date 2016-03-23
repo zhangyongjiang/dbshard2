@@ -35,7 +35,7 @@ public interface BaseDao extends Dao {
 	
 	<T> int create(T obj);
 	<T> int update(T obj);
-	<T> T objectLookup(Class<T> cls, String id);
+	<T> T getObject(Class<T> cls, String id);
 	<T> List<T> objectLookup(Class<T> cls, List<String> ids);
 	int delete(Class cls, String id);
 	int deleteAll(Class cls, Collection<String> ids);
