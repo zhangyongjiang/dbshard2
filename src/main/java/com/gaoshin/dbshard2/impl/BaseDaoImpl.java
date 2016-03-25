@@ -171,7 +171,10 @@ public class BaseDaoImpl implements BaseDao {
                         Class<?> type = field.getType();
                         Object fieldValue = field.get(obj);
                         if(type.isEnum()) {
-                            values.add(fieldValue.toString());
+                        	if(fieldValue == null)
+                        		values.add(null);
+                        	else
+                        		values.add(fieldValue.toString());
                         }
                         else if (String.class.equals(type))
                             values.add(fieldValue);
