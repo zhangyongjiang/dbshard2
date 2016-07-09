@@ -39,6 +39,7 @@ public class TransactionFilter implements Filter {
 			throw new ServletException(t);
 		} 
 		finally {
+			rc.endTime = System.currentTimeMillis();
 			try {
 				rc.close();
 			} catch (Exception e) {

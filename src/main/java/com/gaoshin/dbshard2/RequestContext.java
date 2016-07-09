@@ -20,6 +20,7 @@ package com.gaoshin.dbshard2;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -36,12 +37,18 @@ public class RequestContext {
             localRequestContext.set(context);
         	logger.debug("RC create ");
         }
+        context.id = UUID.randomUUID().toString();
+        context.startTime = System.currentTimeMillis();
         return context;
     }
     
     public synchronized static void setRequestContext(RequestContext rc) {
         localRequestContext.set(rc);
     }
+    
+    public String id;
+    public Long startTime;
+    public Long endTime;
     
 	private List<ExtendedDataSource> dataSourcesUsedByRequest = new ArrayList<ExtendedDataSource>();
 	
