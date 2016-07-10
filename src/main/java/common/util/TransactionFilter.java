@@ -9,6 +9,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
 
@@ -21,11 +22,20 @@ public class TransactionFilter implements Filter {
 	@Override
 	public void destroy() {
 	}
+	
+	private String getRemoteIp(HttpServletRequest req) {
+		String ip = req.getHeader("x-forwarded-for");
+		if(ip == null)
+			ip = req.getRemoteAddr();
+		return ip;
+	}
 
 	@Override
 	public void doFilter(ServletRequest req, ServletResponse resp,
 			FilterChain chain) throws IOException, ServletException {
 		RequestContext rc = RequestContext.getRequestContext();
+		rc.remoteIp = getRemoteIp((HttpServletRequest) req);
+		rc.reqId = ((HttpServletRequest) req).getHeader("reqId");
 		
 		try {
 			chain.doFilter(req, resp);

@@ -50,6 +50,10 @@ public class RequestContext {
     public Long startTime;
     public Long endTime;
     
+    public String userId;
+    public String remoteIp;
+    public String reqId;
+    
 	private List<ExtendedDataSource> dataSourcesUsedByRequest = new ArrayList<ExtendedDataSource>();
 	
 	public void addDataSource(ExtendedDataSource dataSource) {
