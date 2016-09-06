@@ -3,7 +3,9 @@ package com.gaoshin.dbshard2;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,6 +23,8 @@ public class ReflectionBeanManager<T> implements BeanManager<T>{
     public static Long getCreated(Object o) {
         return (Long) ReflectionUtil.getFieldValue(o, "created");
     }
+    
+    private Map<DbDialet, List<String>> createSqls = new HashMap<>();
 
 	@Override
 	public int createBean(final T obj, JdbcTemplate template) {
@@ -139,6 +143,19 @@ public class ReflectionBeanManager<T> implements BeanManager<T>{
 				data = od.size() > 0 ? od.get(0) : null;
 		}
 		return data;
+	}
+
+	@Override
+	public List<String> getCreateSqls(DbDialet dialet) {
+		List<String> list = createSqls.get(dialet);
+		if(list == null)
+			list = createSqls.get(null);
+		return list;
+	}
+
+	public ReflectionBeanManager setCreateSqls(DbDialet dialet, List<String> createSqls) {
+		this.createSqls.put(dialet, createSqls);
+		return this;
 	}
 
 }

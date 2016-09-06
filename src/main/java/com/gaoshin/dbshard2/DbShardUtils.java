@@ -39,13 +39,13 @@ public class DbShardUtils {
 		Map<Class, ClassSqls> sqls = new HashMap<>();
 		final Class<?> beanCls = classTable.getForcls();
 
-		String createSql = classTable.getCreateSql(dbdialet);
+		List<String> createSql = classTable.getBeanManager().getCreateSqls(dbdialet);
 		if(createSql == null)
 		    throw new RuntimeException("don't know how to create table " + classTable.getForcls());
 		
 		ClassSqls thiscls = new ClassSqls();
 		thiscls.forcls = classTable.getForcls();
-		thiscls.addSql(createSql);
+		thiscls.addAllSqls(createSql);
 		logger.debug(classTable.getForcls() + ": " + createSql);
 		sqls.put(thiscls.forcls, thiscls);
 		

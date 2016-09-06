@@ -17,13 +17,11 @@
 
 package com.gaoshin.dbshard2;
 
-import java.util.HashMap;
 
 public class ClassTable {
 	private Class forcls;
 	private ClassIndex[] indexes;
 	private ClassMapping[] mappings;
-	private HashMap<DbDialet, String> tableCreateSqls = new HashMap<>();
 	private BeanManager<?> beanManager;
 
 	public Class getForcls() {
@@ -53,22 +51,6 @@ public class ClassTable {
 
 	public ClassMapping[] getMappings() {
 		return mappings;
-	}
-
-	public ClassTable addCreateSql(DbDialet dialet, String sql) {
-		synchronized (tableCreateSqls) {
-			tableCreateSqls.put(dialet, sql);
-			return this;
-		}
-	}
-
-	public String getCreateSql(DbDialet dialet) {
-		synchronized (tableCreateSqls) {
-			String sql = tableCreateSqls.get(dialet);
-			if(sql == null)
-				sql = tableCreateSqls.get(null);
-			return sql;
-		}
 	}
 
 	public BeanManager<?> getBeanManager() {

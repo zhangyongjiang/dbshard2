@@ -1,5 +1,7 @@
 package com.gaoshin.dbshard2.beans;
 
+import java.util.Collections;
+
 import com.gaoshin.dbshard2.ClassIndex;
 import com.gaoshin.dbshard2.ClassMapping;
 import com.gaoshin.dbshard2.ClassTable;
@@ -27,6 +29,6 @@ public class Account {
 			new ClassMapping[] {
 				new ClassMapping(Account.class, "userId", User.class, null)
 	},
-	new ReflectionBeanManager<>()).addCreateSql(null, "create table if not exists Account (id varchar(64) primary key, created bigint, userId varchar(64), extId varchar(255), type varchar(64))");
+	new ReflectionBeanManager<>().setCreateSqls(null, Collections.singletonList("create table if not exists Account (id varchar(64) primary key, created bigint, userId varchar(64), extId varchar(255), type varchar(64))")));
 
 }
