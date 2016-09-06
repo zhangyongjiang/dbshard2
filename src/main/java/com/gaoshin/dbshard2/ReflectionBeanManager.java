@@ -15,7 +15,12 @@ import common.util.JacksonUtil;
 import common.util.reflection.ReflectionUtil;
 
 public class ReflectionBeanManager<T> implements BeanManager<T>{
-
+	private Class<T> cls;
+	
+	public ReflectionBeanManager(Class<T> cls) {
+		this.cls = cls;
+	}
+	
     public static String getId(Object o) {
         return (String) ReflectionUtil.getFieldValue(o, "id");
     }
@@ -133,7 +138,7 @@ public class ReflectionBeanManager<T> implements BeanManager<T>{
 	}
 
 	@Override
-	public T get(String id, JdbcTemplate tempalte, Class<?>cls) {
+	public T get(String id, JdbcTemplate tempalte) {
 		T data = null;
 		if(id != null){
 				ObjectId oi = new ObjectId(id);
@@ -158,4 +163,8 @@ public class ReflectionBeanManager<T> implements BeanManager<T>{
 		return this;
 	}
 
+	@Override
+	public Class<T> getForClass() {
+		return cls;
+	}
 }

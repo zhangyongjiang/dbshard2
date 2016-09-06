@@ -29,6 +29,6 @@ public class Account {
 			new ClassMapping[] {
 				new ClassMapping(Account.class, "userId", User.class, null)
 	},
-	new ReflectionBeanManager<>().setCreateSqls(null, Collections.singletonList("create table if not exists Account (id varchar(64) primary key, created bigint, userId varchar(64), extId varchar(255), type varchar(64))")));
+	new ReflectionBeanManager<>(Account.class).setCreateSqls(null, Collections.singletonList("create table if not exists Account (id varchar(64) primary key, created bigint, userId varchar(64), extId varchar(255), type varchar(64))")));
 
 }

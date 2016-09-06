@@ -118,7 +118,7 @@ public class BaseDaoImpl implements BaseDao {
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
 		JdbcTemplate jt = dataSource.getJdbcTemplate();
 		ClassTable classTable = getTableManager().getTable(cls);
-		return (T) classTable.getBeanManager().get(id, jt, cls);
+		return (T) classTable.getBeanManager().get(id, jt);
 	}
 	
 	@Override
