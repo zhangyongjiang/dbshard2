@@ -152,7 +152,7 @@ public class BaseDaoImpl implements BaseDao {
 			public void run(int dataSourceId) {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				NamedParameterJdbcTemplate namedjc = dataSource.getNamedParameterJdbcTemplate();
-				List<T> data = namedjc.query(sql, Collections.singletonMap("ids", shardedIds.get(dataSourceId)), new ReflectionRowMapper(cls));
+				List<T> data = (List<T>) namedjc.query(sql, Collections.singletonMap("ids", shardedIds.get(dataSourceId)), getTableManager().getTable(cls).getBeanManager().getRowMapper());
 				synchronized (spilledResults) {
 					spilledResults.addAll(data);
 				}
@@ -508,7 +508,7 @@ public class BaseDaoImpl implements BaseDao {
 			public void run(int dataSourceId) {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				NamedParameterJdbcTemplate jc = dataSource.getNamedParameterJdbcTemplate();
-				List<T> dsResults = jc.query(sb.toString(), keyValues, new ReflectionRowMapper(cls));
+				List<T> dsResults = (List<T>) jc.query(sb.toString(), keyValues, getTableManager().getTable(cls).getBeanManager().getRowMapper());
 				synchronized (results) {
 					results.addAll(dsResults);
 				}

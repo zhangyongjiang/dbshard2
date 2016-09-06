@@ -36,6 +36,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import com.gaoshin.dbshard2.BeanManager;
 import com.gaoshin.dbshard2.ClassIndex;
 import com.gaoshin.dbshard2.ClassMapping;
 import com.gaoshin.dbshard2.ClassSqls;
@@ -630,12 +631,12 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				String sql = "select * from " + cls.getSimpleName();
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
-				final ReflectionRowMapper<T> mapper = new ReflectionRowMapper(cls);
+			    final BeanManager<?> beanManager = getTableManager().getTable(cls).getBeanManager();
 				jt.query(sql, new RowCallbackHandler() {
 					@Override
 					public void processRow(ResultSet rs) throws SQLException {
 						try {
-						    T t = (T) mapper.mapRow(rs);
+							T t = (T) beanManager.getRowMapper().mapRow(rs, -1);
 							handler.processBean(t);
 						} catch (Exception e) {
 							throw new RuntimeException(e);
@@ -735,7 +736,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
     public <T> List<T> queryBeans(final String sql, final Class<T>cls, int dataSourceId) {
         ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
         JdbcTemplate jt = dataSource.getJdbcTemplate();
-        List<T> result = jt.query(sql, new ReflectionRowMapper(cls));
+        List<T> result = (List<T>) jt.query(sql, getTableManager().getTable(cls).getBeanManager().getRowMapper());
         return result;
     }
 	
@@ -747,7 +748,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			public void run(int dataSourceId) {
 				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByDataSourceId(dataSourceId);
 				JdbcTemplate jt = dataSource.getJdbcTemplate();
-				List<T> result = jt.query(sql, new ReflectionRowMapper(cls));
+		        List<T> result = (List<T>) jt.query(sql, getTableManager().getTable(cls).getBeanManager().getRowMapper());
 				synchronized (list) {
 					list.addAll(result);
 				}

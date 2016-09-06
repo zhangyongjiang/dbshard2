@@ -9,28 +9,19 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
 import com.gaoshin.dbshard2.impl.ReflectionRowMapper;
 import common.util.JacksonUtil;
 import common.util.reflection.ReflectionUtil;
 
-public class ReflectionBeanManager<T> implements BeanManager<T>{
-	private Class<T> cls;
-	
-	public ReflectionBeanManager(Class<T> cls) {
-		this.cls = cls;
-	}
-	
-    public static String getId(Object o) {
-        return (String) ReflectionUtil.getFieldValue(o, "id");
-    }
-    
-    public static Long getCreated(Object o) {
-        return (Long) ReflectionUtil.getFieldValue(o, "created");
-    }
-    
+public class ReflectionBeanManager<T> extends BeanManagerBase<T>{
     private Map<DbDialet, List<String>> createSqls = new HashMap<>();
 
+    public ReflectionBeanManager(Class<T> cls) {
+    	super(cls);
+	}
+    
 	@Override
 	public int createBean(final T obj, JdbcTemplate template) {
         String id = getId(obj);
@@ -164,7 +155,7 @@ public class ReflectionBeanManager<T> implements BeanManager<T>{
 	}
 
 	@Override
-	public Class<T> getForClass() {
-		return cls;
+	public RowMapper<T> getRowMapper() {
+		return new ReflectionRowMapper<>(getForClass());
 	}
 }

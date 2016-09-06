@@ -1,11 +1,9 @@
 package com.gaoshin.dbshard2.beans;
 
-import java.util.Collections;
-
 import com.gaoshin.dbshard2.ClassIndex;
 import com.gaoshin.dbshard2.ClassMapping;
 import com.gaoshin.dbshard2.ClassTable;
-import com.gaoshin.dbshard2.ReflectionBeanManager;
+import com.gaoshin.dbshard2.JsonBeanManager;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 
@@ -29,6 +27,6 @@ public class Account {
 			new ClassMapping[] {
 				new ClassMapping(Account.class, "userId", User.class, null)
 	},
-	new ReflectionBeanManager<>(Account.class).setCreateSqls(null, Collections.singletonList("create table if not exists Account (id varchar(64) primary key, created bigint, userId varchar(64), extId varchar(255), type varchar(64))")));
+	new JsonBeanManager<>(Account.class));
 
 }
