@@ -19,8 +19,6 @@ package com.gaoshin.dbshard2.impl;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -40,14 +38,15 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.gaoshin.dbshard2.BaseDao;
+import com.gaoshin.dbshard2.BeanManager;
 import com.gaoshin.dbshard2.ClassIndex;
+import com.gaoshin.dbshard2.ClassTable;
 import com.gaoshin.dbshard2.ExtendedDataSource;
 import com.gaoshin.dbshard2.ObjectId;
 import com.gaoshin.dbshard2.ShardResolver;
 import com.gaoshin.dbshard2.ShardedDataSource;
 import com.gaoshin.dbshard2.TableManager;
 import com.gaoshin.dbshard2.entity.IndexedData;
-import common.util.JacksonUtil;
 import common.util.MultiTask;
 import common.util.reflection.ReflectionUtil;
 
@@ -96,125 +95,30 @@ public class BaseDaoImpl implements BaseDao {
 	public <T> int create(final T obj) {
         String id = getId(obj);
 		final ObjectId oi = new ObjectId(id);
-		final AtomicInteger ups = new AtomicInteger();
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
-		
-        final StringBuilder sql = new StringBuilder();
-        final StringBuilder valuesSql = new StringBuilder();
-        final List<Object> values = new ArrayList<>();
-
-        try {
-            ReflectionUtil.iterateFields(obj.getClass(), obj, new common.util.reflection.FieldFoundCallback() {
-                @Override
-                public void field(Object o, Field field) throws Exception {
-                    if(!Modifier.isStatic(field.getModifiers()) && !Modifier.isTransient(field.getModifiers())) {
-                        if(sql.length() > 0) {
-                            sql.append(", ");
-                            valuesSql.append(",");
-                        }
-                        sql.append(field.getName());
-                        valuesSql.append("?");
-                        Class<?> type = field.getType();
-                        Object fieldValue = field.get(obj);
-                        if(fieldValue == null)
-                            values.add(null);
-                        else if(type.isEnum()) {
-                            values.add(fieldValue.toString());
-                        }
-                        else if (String.class.equals(type))
-                            values.add(fieldValue);
-                        else if (ReflectionUtil.isPrimeType(type)) {
-                            values.add(fieldValue);
-                        }
-                        else {
-                            String json = JacksonUtil.obj2Json(fieldValue);
-                            values.add(json);
-                        }
-                    }
-                }
-            });
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        sql.insert(0, "insert into " + obj.getClass().getSimpleName() + " (");
-        valuesSql.insert(0, " values (");
-		sql.append(")");
-		valuesSql.append(")");
-		
 		JdbcTemplate jt = dataSource.getJdbcTemplate();
-		int res = jt.update(sql.toString() + valuesSql.toString(), values.toArray());
-		ups.getAndAdd(res);
-		return ups.get();
+		BeanManager<T> beanManager = (BeanManager<T>) getTableManager().getTable(obj.getClass()).getBeanManager();
+		return beanManager.createBean(obj, jt);
 	}
 	
 	@Override
 	public int update(final Object obj) {
         String id = (String) ReflectionUtil.getFieldValue(obj, "id");
 		final ObjectId oi = new ObjectId(id);
-		final AtomicInteger ups = new AtomicInteger();
 		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
-		
-        final StringBuilder sql = new StringBuilder();
-        final List<Object> values = new ArrayList<>();
-
-        try {
-            ReflectionUtil.iterateFields(obj.getClass(), obj, new common.util.reflection.FieldFoundCallback() {
-                @Override
-                public void field(Object o, Field field) throws Exception {
-                    if(!Modifier.isStatic(field.getModifiers()) && !Modifier.isTransient(field.getModifiers())) {
-                        if(sql.length() > 0) {
-                            sql.append(", ");
-                        }
-                        sql.append(field.getName()).append("=?");
-                        
-                        Class<?> type = field.getType();
-                        Object fieldValue = field.get(obj);
-                        if(type.isEnum()) {
-                        	if(fieldValue == null)
-                        		values.add(null);
-                        	else
-                        		values.add(fieldValue.toString());
-                        }
-                        else if (String.class.equals(type))
-                            values.add(fieldValue);
-                        else if (ReflectionUtil.isPrimeType(type)) {
-                            values.add(fieldValue);
-                        }
-                        else {
-                            String json = JacksonUtil.obj2Json(fieldValue);
-                            values.add(json);
-                        }
-                    }
-                }
-            });
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        sql.insert(0, "update " + obj.getClass().getSimpleName() + " set ");
-        sql.append(" where id=?");
-        values.add(id);
-        
 		JdbcTemplate jt = dataSource.getJdbcTemplate();
-		int res = jt.update(sql.toString(), values.toArray());
-		ups.getAndAdd(res);
-		return ups.get();
+		ClassTable table = getTableManager().getTable(obj.getClass());
+		BeanManager beanManager = table.getBeanManager();
+		return beanManager.updateBean(obj, jt);
 	}
 
 	@Override
 	public <T> T getObject(Class<T> cls, String id) {
-		T data = null;
-		if(id != null){
-				ObjectId oi = new ObjectId(id);
-				ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
-				String sql = "select * from " + cls.getSimpleName() + " where id=?";
-				JdbcTemplate jt = dataSource.getJdbcTemplate();
-				List<T> od = jt.query(sql, new Object[]{id}, new ReflectionRowMapper(cls));
-				
-				data = od.size() > 0 ? od.get(0) : null;
-		}
-		return data;
+		ObjectId oi = new ObjectId(id);
+		ExtendedDataSource dataSource = shardedDataSource.getDataSourceByShardId(oi.getShard());
+		JdbcTemplate jt = dataSource.getJdbcTemplate();
+		ClassTable classTable = getTableManager().getTable(cls);
+		return (T) classTable.getBeanManager().get(id, jt, cls);
 	}
 	
 	@Override

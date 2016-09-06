@@ -24,6 +24,7 @@ public class ClassTable {
 	private ClassIndex[] indexes;
 	private ClassMapping[] mappings;
 	private HashMap<DbDialet, String> tableCreateSqls = new HashMap<>();
+	private BeanManager<?> beanManager = new ReflectionBeanManager<>();
 
 	public Class getForcls() {
 		return forcls;
@@ -67,6 +68,14 @@ public class ClassTable {
 				sql = tableCreateSqls.get(null);
 			return sql;
 		}
+	}
+
+	public BeanManager<?> getBeanManager() {
+		return beanManager;
+	}
+
+	public void setBeanManager(BeanManager<?> beanManager) {
+		this.beanManager = beanManager;
 	}
 
 }
