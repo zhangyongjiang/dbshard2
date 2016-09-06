@@ -51,7 +51,7 @@ public class JsonBeanManager<T> extends BeanManagerBase<T> {
 			throw new RuntimeException(e);
 		}
 		final AtomicInteger ups = new AtomicInteger();
-		String sql = "update " + cls.getSimpleName() + " set updated=?, json=? where id=?)";
+		String sql = "update " + cls.getSimpleName() + " set updated=?, json=? where id=?";
 		int res = template.update(sql, updated, json, id);
 		ups.getAndAdd(res);
 		return ups.get();
