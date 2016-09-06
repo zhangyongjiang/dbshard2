@@ -24,17 +24,18 @@ public class ClassTable {
 	private ClassIndex[] indexes;
 	private ClassMapping[] mappings;
 	private HashMap<DbDialet, String> tableCreateSqls = new HashMap<>();
-	private BeanManager<?> beanManager = new ReflectionBeanManager<>();
+	private BeanManager<?> beanManager;
 
 	public Class getForcls() {
 		return forcls;
 	}
 
 	public ClassTable(Class forcls, ClassIndex[] indexes,
-			ClassMapping[] mappings) {
+			ClassMapping[] mappings, BeanManager<?> beanManager) {
 		this.forcls = forcls;
 		this.indexes = indexes;
 		this.mappings = mappings;
+		this.beanManager = beanManager;
 	}
 
 	public ClassMapping getClassMapping(Class cls) {
