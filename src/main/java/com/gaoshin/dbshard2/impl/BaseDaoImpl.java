@@ -606,5 +606,12 @@ public class BaseDaoImpl implements BaseDao {
 	    this.tableManager = tableManager;
     }
 
+	public static Map<String, Object> buildMap(String... params) {
+		Map<String, Object> result = new HashMap<>();
+		for(int i=0; i<params.length; i+=2) {
+			result.put(params[i], params[i+1]);
+		}
+		return result;
+	}
 }
 
