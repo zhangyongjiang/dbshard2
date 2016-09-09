@@ -123,7 +123,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
     @Override
     public void updateBeanAndIndexAndMapping(Object obj) {
         super.update(obj);
+        removeIndexesForBean(obj);
         addIndexesForBean(obj);
+        removeMappingsForBean(obj);
         addMappingsForBean(obj);
     }
 	
@@ -292,7 +294,10 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	protected int removeIndexesForBean(Object obj){
 		int ret = 0;
-		for(ClassIndex index : getTableForBean(obj).getIndexes()) {
+		ClassIndex[] indexes = getTableForBean(obj).getIndexes();
+		if(indexes == null)
+			return ret;
+		for(ClassIndex index : indexes) {
 			deleteIndexData(index, (String)ReflectionUtil.getFieldValue(obj, "id"));
 		}
 		return ret;
@@ -324,7 +329,10 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	
 	protected int removeMappingsForBean(Object obj){
 		int ret = 0;
-		for(ClassMapping mapping : getTableForBean(obj).getMappings()) {
+		ClassMapping[] mappings = getTableForBean(obj).getMappings();
+		if(mappings == null)
+			return 0;
+		for(ClassMapping mapping : mappings) {
 			String table = mapping.getTableName();
 			List<Object> list = new ArrayList();
 			getValues(obj, mapping.column, list);
@@ -621,6 +629,11 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
             }
 		}
 		return map;
+	}
+
+	@Override
+	public <T> List<T> listBeans(Class<T> cls, List<String> ids) {
+		return objectLookup(cls, ids);
 	}
 
 	@Override

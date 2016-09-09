@@ -35,6 +35,7 @@ public interface ExtendedDao extends BaseDao {
 	int deleteAll(Class cls, Collection<String> ids);
 	int deleteBean(Object od);
 	<T> Map<String, T> mapBeans(Class<T> cls, List<String> ids);
+	<T> List<T> listBeans(Class<T> cls, List<String> ids);
 	void removeBeans(List list);
     <T> List<T> queryBeans(final String sql, Class<T>cls);
     <T> List<T> queryBeans(final String sql, Class<T>cls, int dataSourceId);
