@@ -263,6 +263,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 						values.add(value);
 					}
 				}
+				else {
+					values.add(value);
+				}
 				return;
 			}
 			
@@ -708,7 +711,10 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 			}
 			
 			Object value = keyValues.get(s);
-			if(value == null || value instanceof Collection) {
+			if(value == null) {
+				sql.append(s).append(" is null ");
+			}
+			else if(value instanceof Collection) {
 				sql.append(s).append(" in (:").append(s).append(")");
 				Collection c = (Collection) value;
 				emptyCollection = c.size() == 0;
