@@ -49,6 +49,7 @@ import com.gaoshin.dbshard2.DbShardUtils;
 import com.gaoshin.dbshard2.ExtendedDao;
 import com.gaoshin.dbshard2.ExtendedDataSource;
 import com.gaoshin.dbshard2.ObjectId;
+import com.gaoshin.dbshard2.ObjectOperation;
 import com.gaoshin.dbshard2.TimeRange;
 import com.gaoshin.dbshard2.entity.IndexedData;
 import com.gaoshin.dbshard2.entity.MappedData;
@@ -702,6 +703,7 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		final StringBuilder sql = new StringBuilder("select * from ").append(index.getTableName());
 		boolean first = true;
 		Boolean emptyCollection = null;
+		Map<String, Object> params = new HashMap<String, Object>(keyValues);
 		for(String s : keyValues.keySet()) {
 			if(first) {
 				sql.append(" where ");
@@ -719,6 +721,11 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 				Collection c = (Collection) value;
 				emptyCollection = c.size() == 0;
 			}
+			else if(value instanceof ObjectOperation) {
+				ObjectOperation oo = (ObjectOperation) value;
+				sql.append(s).append(oo.operation).append(" :").append(s);
+				params.put(s, oo.obj);
+			}
 			else {
 				sql.append(s).append("=:").append(s);
 			}
@@ -727,7 +734,6 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 		if(offset>=0)
 			sql.append(" limit :offset,:size");
 		
-		Map<String, Object> params = new HashMap<String, Object>(keyValues);
 		if(offset>=0) {
 			params.put("offset", offset);
 			params.put("size", size);
