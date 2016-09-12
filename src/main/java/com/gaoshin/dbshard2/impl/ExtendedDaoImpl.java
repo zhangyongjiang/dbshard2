@@ -696,6 +696,14 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	}
 
 	@Override
+	public void indexBeanDelete(Class cls,
+			Map<String, Object> keyValues,
+			int dataSourceId) {
+		List list = indexBeanLookup(cls, keyValues, -1, -1, dataSourceId);
+		removeBeans(list);
+	}
+
+	@Override
 	public <Z> List<Z> indexBeanLookup(Class<Z> cls,
 			Map<String, Object> keyValues, int offset, int size,
 			int dataSourceId) {

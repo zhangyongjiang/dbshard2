@@ -89,4 +89,6 @@ public interface ExtendedDao extends BaseDao {
 	ClassIndex indexByKeys(Class forClass, String... keys);
 	
 	int getNumberOfObjects(Class cls, TimeRange tr);
+	void indexBeanDelete(Class cls, Map<String, Object> keyValues,
+			int dataSourceId);
 }
