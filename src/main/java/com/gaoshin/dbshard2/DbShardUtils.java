@@ -17,9 +17,12 @@
 
 package com.gaoshin.dbshard2;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -223,4 +226,24 @@ public class DbShardUtils {
 		}
 		return map;
 	}
+	
+   public static void export(TableManager tableManager, Writer w) throws IOException {
+        Map<Class, ClassSqls> map = new HashMap<Class, ClassSqls>();
+        List<String> list = new ArrayList<String>();
+        for(ClassTable ct : tableManager.getAllTables()) {
+            Map<Class, ClassSqls> sqls = DbShardUtils.getSqls(ct, DbDialet.Mysql);
+            ClassSqls.a2b(sqls, map);
+            for(ClassSqls cs : sqls.values()) {
+                for(String s : cs.sqls) {
+                    if(!list.contains(s)) {
+                        list.add(s);
+                    }
+                }
+            }
+        }
+        for(String s : list)
+            w.write(s + ";\n");
+        w.flush();
+        w.close();
+    }
 }
