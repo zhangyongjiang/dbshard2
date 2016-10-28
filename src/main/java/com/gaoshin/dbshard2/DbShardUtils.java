@@ -93,7 +93,7 @@ public class DbShardUtils {
 				thiscls.addSql(sql);
 				logger.debug(thiscls.forcls + ": " + sql);
 				
-				sql = "alter table " + tableName + " add index idindex (id)";
+				sql = "alter table " + tableName + " add index (id)";
 				thiscls.addSql(sql);
 				logger.debug(thiscls.forcls + ": " + sql);
 			}
@@ -127,11 +127,11 @@ public class DbShardUtils {
 				map2sqls.addSql(sql);
 				logger.debug(map2cls + ": " + sql);
 				
-				sql = "alter table " + mapping.getTableName() + " add index sidindex (sid)";
+				sql = "alter table " + mapping.getTableName() + " add index (sid)";
 				map2sqls.addSql(sql);
 				logger.debug(map2cls + ": " + sql);
 				
-				sql = "alter table " + mapping.getTableName() + " add index pidindex (pid)";
+				sql = "alter table " + mapping.getTableName() + " add index (pid)";
 				map2sqls.addSql(sql);
 				logger.debug(map2cls + ": " + sql);
 			}
