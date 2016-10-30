@@ -477,7 +477,9 @@ public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	public Map<Class, ClassSqls> getCreateTableSqls(DbDialet dialet) {
 		Map<Class, ClassSqls> result = new HashMap<>();
 		for(Class cls : forClasses) {
-		    Map<Class, ClassSqls> map = DbShardUtils.getSqls(getTableManager().getTable(cls), dialet);
+		    ClassTable classTable = getTableManager().getTable(cls);
+		    if(classTable == null) continue;
+            Map<Class, ClassSqls> map = DbShardUtils.getSqls(classTable, dialet);
 			for(Entry<Class, ClassSqls> entry : map.entrySet()) {
 				Class key = entry.getKey();
 				ClassSqls classSqls = result.get(key);
