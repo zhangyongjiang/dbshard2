@@ -158,4 +158,8 @@ public class JacksonUtil {
     public static List getList(Map<String, Object> map, String key) {
         return (List) map.get(key);
     }
+    
+    public static <T> T map2obj(Map map, Class<T> toValueType) {
+    	return getObjectMapper().convertValue(map, toValueType);
+    }
 }
