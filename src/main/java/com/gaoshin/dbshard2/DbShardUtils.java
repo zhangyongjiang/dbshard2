@@ -244,6 +244,5 @@ public class DbShardUtils {
         for(String s : list)
             w.write(s + ";\n");
         w.flush();
-        w.close();
     }
 }
