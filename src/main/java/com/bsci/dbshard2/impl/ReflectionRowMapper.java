@@ -10,8 +10,8 @@ import java.util.Map;
 
 import org.springframework.jdbc.core.RowMapper;
 
-import com.bsci.dbshard2.util.reflection.FieldFoundCallback;
-import com.bsci.dbshard2.util.reflection.ReflectionUtil;
+import common.util.reflection.FieldFoundCallback;
+import common.util.reflection.ReflectionUtil;
 
 public class ReflectionRowMapper<T> implements RowMapper<T> {
 	private static Map<Class, Map<String, Field>> clsFields = new HashMap<>();

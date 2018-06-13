@@ -9,12 +9,12 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.bsci.dbshard2.impl.ReflectionRowMapper;
-import com.bsci.dbshard2.util.reflection.FieldFoundCallback;
+import common.util.reflection.FieldFoundCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
-import com.bsci.dbshard2.util.JacksonUtil;
-import com.bsci.dbshard2.util.reflection.ReflectionUtil;
+import common.util.JacksonUtil;
+import common.util.reflection.ReflectionUtil;
 
 public class ReflectionBeanManager<T> extends BeanManagerBase<T>{
     private Map<DbDialet, List<String>> createSqls = new HashMap<>();

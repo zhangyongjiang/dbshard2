@@ -15,10 +15,22 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util.reflection;
+package common.util;
 
-import java.lang.reflect.Method;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-public interface MethodFoundCallback {
-    void method(Object o, Method method);
+import org.springframework.jdbc.core.RowMapper;
+
+
+public class ResultSetObjectMapper<T> implements RowMapper<T> {
+    private Class<T> clazz;
+    public ResultSetObjectMapper(Class<T> clazz){
+        this.clazz = clazz;
+    }
+    @Override
+    public T mapRow(final ResultSet rs, int rowNum) throws SQLException {
+        return SqlUtil.resultSetToEntity(clazz,rs);
+    }
+
 }

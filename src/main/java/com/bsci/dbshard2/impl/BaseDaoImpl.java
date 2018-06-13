@@ -47,8 +47,8 @@ import com.bsci.dbshard2.ClassTable;
 import com.bsci.dbshard2.ExtendedDataSource;
 import com.bsci.dbshard2.ShardResolver;
 import com.bsci.dbshard2.ShardedDataSource;
-import com.bsci.dbshard2.util.MultiTask;
-import com.bsci.dbshard2.util.reflection.ReflectionUtil;
+import common.util.MultiTask;
+import common.util.reflection.ReflectionUtil;
 
 @SuppressWarnings({"rawtypes","unchecked","static-access"}) 
 public class BaseDaoImpl implements BaseDao {

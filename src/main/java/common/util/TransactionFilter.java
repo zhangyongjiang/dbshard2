@@ -1,4 +1,4 @@
-package com.bsci.dbshard2.util;
+package common.util;
 
 import java.io.IOException;
 import java.sql.SQLException;

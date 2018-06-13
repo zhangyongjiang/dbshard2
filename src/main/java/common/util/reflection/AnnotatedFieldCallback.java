@@ -15,10 +15,7 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util.reflection;
+package common.util.reflection;
 
-import java.lang.reflect.Field;
-
-public interface FieldFoundCallback {
-    void field(Object o, Field field) throws Exception;
+public interface AnnotatedFieldCallback extends FieldFoundCallback {
 }

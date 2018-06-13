@@ -11,7 +11,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.bsci.dbshard2.util.DateUtil;
+import common.util.DateUtil;
 
 public class JsonBeanManager<T> extends BeanManagerBase<T> {
 	private static ObjectMapper objectMapper = new ObjectMapper();

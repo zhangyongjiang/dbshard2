@@ -24,7 +24,7 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import com.bsci.dbshard2.ShardResolver;
-import com.bsci.dbshard2.util.reflection.ReflectionUtil;
+import common.util.reflection.ReflectionUtil;
 
 public abstract class TimedShardResolver<T> implements ShardResolver<T> {
     protected static final SimpleDateFormat sdf;

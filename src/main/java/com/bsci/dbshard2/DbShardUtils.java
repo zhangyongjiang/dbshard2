@@ -33,7 +33,7 @@ import javax.persistence.Column;
 
 import org.apache.log4j.Logger;
 
-import com.bsci.dbshard2.util.reflection.ReflectionUtil;
+import common.util.reflection.ReflectionUtil;
 
 public class DbShardUtils {
 	private static final Logger logger = Logger.getLogger(DbShardUtils.class);

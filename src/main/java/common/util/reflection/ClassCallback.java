@@ -15,22 +15,8 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util;
+package common.util.reflection;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
-import org.springframework.jdbc.core.RowMapper;
-
-
-public class ResultSetObjectMapper<T> implements RowMapper<T> {
-    private Class<T> clazz;
-    public ResultSetObjectMapper(Class<T> clazz){
-        this.clazz = clazz;
-    }
-    @Override
-    public T mapRow(final ResultSet rs, int rowNum) throws SQLException {
-        return SqlUtil.resultSetToEntity(clazz,rs);
-    }
-
+public interface ClassCallback {
+    void classFound(Class<?> clazz) throws Exception;
 }

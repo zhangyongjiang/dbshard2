@@ -15,27 +15,10 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util.reflection;
+package common.util.reflection;
 
-import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
-public class AnnotatedField<T> implements AnnotatedFieldCallback {
-    private Object object;
-    private Field field;
-    @Override
-    public void field(Object object, Field field) {
-        this.field = field;
-        this.object = object;
-        field.setAccessible(true);
-    }
-    public T getValue() throws Exception {
-        return (T)field.get(object);
-    }
-    public void setValue(T value) throws Exception {
-        field.set(object, value);
-    }
-    
-    public void setObject(Object object){
-        this.object = object;
-    }
+public interface MethodFoundCallback {
+    void method(Object o, Method method);
 }

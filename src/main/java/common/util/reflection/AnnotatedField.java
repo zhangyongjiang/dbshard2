@@ -15,41 +15,27 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util;
+package common.util.reflection;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
+import java.lang.reflect.Field;
 
-public class LineReader {
-	public static interface LineProcessor {
-		void process(String line);
-	}
-	
-	private BufferedReader br;
-	
-	public LineReader(InputStream stream) {
-		br = new BufferedReader(new InputStreamReader(stream));
+public class AnnotatedField<T> implements AnnotatedFieldCallback {
+    private Object object;
+    private Field field;
+    @Override
+    public void field(Object object, Field field) {
+        this.field = field;
+        this.object = object;
+        field.setAccessible(true);
     }
-	
-	public LineReader(Reader stream) {
-		br = new BufferedReader(stream);
+    public T getValue() throws Exception {
+        return (T)field.get(object);
     }
-	
-	public LineReader(String content) {
-		br = new BufferedReader(new StringReader(content));
+    public void setValue(T value) throws Exception {
+        field.set(object, value);
     }
-	
-	public void start(LineProcessor processor) throws IOException {
-		while(true) {
-			String line = br.readLine();
-			if(line == null)
-				break;
-			processor.process(line);
-		}
-		br.close();
-	}
+    
+    public void setObject(Object object){
+        this.object = object;
+    }
 }

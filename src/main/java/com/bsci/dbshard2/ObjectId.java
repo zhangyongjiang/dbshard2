@@ -17,7 +17,7 @@
 
 package com.bsci.dbshard2;
 
-import com.bsci.dbshard2.util.UuidUtil;
+import common.util.UuidUtil;
 
 
 public class ObjectId {

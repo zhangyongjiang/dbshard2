@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util.reflection;
+package common.util.reflection;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.bsci.dbshard2.util.JacksonUtil;
+import common.util.JacksonUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 public class ReflectionUtil {

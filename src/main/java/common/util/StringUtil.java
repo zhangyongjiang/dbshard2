@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util;
+package common.util;
 
 public class StringUtil {
 	public static boolean isEmpty(String s) {

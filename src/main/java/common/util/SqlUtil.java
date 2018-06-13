@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util;
+package common.util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -26,8 +26,8 @@ import java.util.HashMap;
 
 import javax.persistence.Transient;
 
-import com.bsci.dbshard2.util.reflection.FieldFoundCallback;
-import com.bsci.dbshard2.util.reflection.ReflectionUtil;
+import common.util.reflection.FieldFoundCallback;
+import common.util.reflection.ReflectionUtil;
 
 public class SqlUtil {
     public static boolean ignoreSupported = true;

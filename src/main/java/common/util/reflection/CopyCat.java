@@ -15,10 +15,28 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util.reflection;
+package common.util.reflection;
 
-import java.lang.reflect.Method;
+import org.springframework.beans.BeanUtils;
 
-public interface AnnotatedMethodCallback {
-    void method(Object obj, Method method) throws Exception;
+public class CopyCat {
+	public static Object copyProperties(Object src, Object dst, String... ignores) {
+		if(src == null)
+			return null;
+		BeanUtils.copyProperties(src, dst, ignores);
+		return dst;
+	}
+	
+	public static <T> T copyProperties(Object src, Class<T> dstClass, String... ignores) {
+		if(src == null)
+			return null;
+		T dst = null;
+		try {
+			dst = dstClass.newInstance();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		BeanUtils.copyProperties(src, dst, ignores);
+		return dst;
+	}
 }

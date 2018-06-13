@@ -1,4 +1,4 @@
-package com.bsci.dbshard2.util;
+package common.util;
 
 import java.util.Calendar;
 

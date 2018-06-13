@@ -53,8 +53,8 @@ import com.bsci.dbshard2.ExtendedDataSource;
 import com.bsci.dbshard2.ObjectId;
 import com.bsci.dbshard2.ObjectOperation;
 import com.bsci.dbshard2.TimeRange;
-import com.bsci.dbshard2.util.DateUtil;
-import com.bsci.dbshard2.util.reflection.ReflectionUtil;
+import common.util.DateUtil;
+import common.util.reflection.ReflectionUtil;
 
 public class ExtendedDaoImpl extends BaseDaoImpl implements ExtendedDao {
 	private static Logger logger = Logger.getLogger(ExtendedDaoImpl.class);

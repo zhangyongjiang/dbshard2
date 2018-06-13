@@ -1,6 +1,6 @@
 package com.bsci.dbshard2;
 
-import com.bsci.dbshard2.util.reflection.ReflectionUtil;
+import common.util.reflection.ReflectionUtil;
 
 public abstract class BeanManagerBase<T> implements BeanManager<T> {
 	protected Class<T> cls;

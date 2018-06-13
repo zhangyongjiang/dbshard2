@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.bsci.dbshard2.util;
+package common.util;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
